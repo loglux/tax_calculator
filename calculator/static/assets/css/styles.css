@@ -1,0 +1,44 @@
+/* calculator/static/styles.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f4;
+    margin: 0;
+    padding: 0;
+}
+
+.card {
+    border: none;
+}
+
+.card-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+}
+
+.table th,
+.table td {
+    vertical-align: middle;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+}
+
+.form-check {
+    display: flex;
+    align-items: center;
+    margin-bottom: 0.5rem; /* Добавлен отступ для улучшения визуального восприятия */
+}
+
+.form-check-input {
+    margin-right: 0.5rem; /* Отступ справа для чекбоксов */
+}
+
+.form-control, .form-select {
+    width: auto;
+    display: inline-block;
+}
+
+.col-auto {
+    text-align: center;
+}
