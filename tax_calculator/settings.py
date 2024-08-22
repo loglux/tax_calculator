@@ -29,7 +29,7 @@ DEBUG = True
 # ALLOWED_HOSTS = []
 ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'tax-calculator-abhnf5crftcxg4fu.eastus-01.azurewebsites.net']
 CSRF_TRUSTED_ORIGINS = ['https://tax-calculator-abhnf5crftcxg4fu.eastus-01.azurewebsites.net']
-
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # Application definition
 
