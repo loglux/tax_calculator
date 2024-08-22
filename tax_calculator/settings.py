@@ -26,7 +26,8 @@ SECRET_KEY = 'django-insecure-tf+hl%5vl7*5hq#b44fq5rx^b6o=y-z!ik1p@-_l%aopfod0*q
 DEBUG = True
 #DEBUG = os.environ.get('DJANGO_DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = []
+# ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['localhost', '127.0.0.1', 'tax-calculator-abhnf5crftcxg4fu.eastus-01.azurewebsites.net']
 
 
 # Application definition
