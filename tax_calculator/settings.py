@@ -21,8 +21,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 #if 'WEBSITE_HOSTNAME' in os.environ: # Running on Azure
 #    from .azure import *
 
-if 'WEBSITE_HOSTNAME' in os.environ: # Running on Azure
-    from .azure import *
+
 
 
 # Quick-start development settings - unsuitable for production
@@ -176,3 +175,6 @@ SIMPLE_JWT = {
     'AUTH_TOKEN_CLASSES': ('rest_framework_simplejwt.tokens.AccessToken',),
     'TOKEN_TYPE_CLAIM': 'token_type',
 }
+
+if 'WEBSITE_HOSTNAME' in os.environ: # Running on Azure
+    from .azure import *
