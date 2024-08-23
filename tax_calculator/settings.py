@@ -11,6 +11,8 @@ https://docs.djangoproject.com/en/5.0/ref/settings/
 """
 import os
 from pathlib import Path
+if 'WEBSITE_HOSTNAME' in os.environ: # Running on Azure
+    from .azure import *
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -20,14 +22,6 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # import os
 #if 'WEBSITE_HOSTNAME' in os.environ: # Running on Azure
 #    from .azure import *
-
-import os
-
-if 'WEBSITE_HOSTNAME' in os.environ:
-    print("Azure environment detected, importing azure.py...")
-    from .azure import *
-else:
-    print("Local environment detected, skipping azure.py import.")
 
 
 # Quick-start development settings - unsuitable for production
