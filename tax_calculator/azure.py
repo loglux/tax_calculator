@@ -1,7 +1,7 @@
 from .settings import *
 import os
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+# BASE_DIR = Path(__file__).resolve().parent.parent
 # BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 ALLOWED_HOSTS = [os.environ['WEBSITE_HOSTNAME']] if 'WEBSITE_HOSTNAME' in os.environ else []
