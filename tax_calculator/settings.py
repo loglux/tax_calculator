@@ -18,8 +18,17 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Load the Azure settings if running on Azure
 # import os
-if 'WEBSITE_HOSTNAME' in os.environ: # Running on Azure
+#if 'WEBSITE_HOSTNAME' in os.environ: # Running on Azure
+#    from .azure import *
+
+import os
+
+if 'WEBSITE_HOSTNAME' in os.environ:
+    print("Azure environment detected, importing azure.py...")
     from .azure import *
+else:
+    print("Local environment detected, skipping azure.py import.")
+
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
