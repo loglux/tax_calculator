@@ -27,18 +27,35 @@ body {
 .form-check {
     display: flex;
     align-items: center;
-    margin-bottom: 0.5rem; /* Добавлен отступ для улучшения визуального восприятия */
+    margin-bottom: 0.5rem;
 }
 
 .form-check-input {
-    margin-right: 0.5rem; /* Отступ справа для чекбоксов */
+    margin-right: 0.5rem;
 }
 
 .form-control, .form-select {
-    width: auto;
-    display: inline-block;
+    width: 100%; /* Используем 100% ширины для полей */
+    display: block;
+    box-sizing: border-box;
 }
 
 .col-auto {
-    text-align: center;
+    text-align: left; /* Обеспечивает выравнивание по левому краю */
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+    .col-12 {
+        width: 100%; /* На маленьких экранах каждый элемент будет занимать 100% ширины */
+    }
+
+    .form-check {
+        flex-direction: row;
+        align-items: center;
+    }
+
+    button[type="submit"] {
+        width: 100%; /* Кнопка на всю ширину */
+    }
 }
