@@ -1,4 +1,5 @@
 from django import forms
+from .models import TaxRate
 
 class TaxForm(forms.Form):
     income = forms.DecimalField(
@@ -36,9 +37,14 @@ class TaxForm(forms.Form):
         label='Workweek Hours',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-"""    tax_year = forms.ChoiceField(
-        choices=[('2021/22', '2021/22'), ('2022/23', '2022/23')],
+
+    # Поле для выбора налогового года
+    def generate_tax_year_choices():
+        years = TaxRate.objects.values_list('year', flat=True).order_by('year')
+        return [(year, f"{year}/{year + 1 - 2000}") for year in years]
+
+    tax_year = forms.ChoiceField(
+        choices=generate_tax_year_choices(),
         label='Tax Year',
         widget=forms.Select(attrs={'class': 'form-select'})
     )
-    """
