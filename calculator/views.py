@@ -8,9 +8,41 @@ from rest_framework import viewsets
 from .serializers import TaxRateSerializer
 from decimal import Decimal
 
+# for get_default_year
+from datetime import datetime
+
 class TaxRateViewSet(viewsets.ModelViewSet):
     queryset = TaxRate.objects.all()
     serializer_class = TaxRateSerializer
+
+
+def get_default_year():
+    """
+    Get current or last tax year available in DB
+    """
+    from datetime import datetime
+
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+
+    try:
+        # Получаем последний доступный год из базы
+        latest_year = TaxRate.objects.latest('year').year
+
+        # Определяем текущий налоговый год
+        if current_month < 4:  # Если до апреля, используем предыдущий календарный год
+            current_tax_year = current_year - 1
+        else:
+            current_tax_year = current_year
+
+        # Если последний год в базе >= текущего налогового года, возвращаем текущий год
+        if latest_year >= current_tax_year:
+            return current_tax_year
+        return latest_year  # Если текущий год отсутствует, возвращаем последний доступный
+    except TaxRate.DoesNotExist:
+        # Если в базе нет данных, явно сигнализируем об этом
+        raise ValueError("No tax years available in the database.")
+
 
 def get_tax_rates(year):
     try:
@@ -154,7 +186,7 @@ def calculate_tax_details(income, income_type, is_blind, no_ni, tax_rates, is_sc
     }
 
 
-def process_tax_calculation(data):
+def process_tax_calculation(data, year):
     income = data.get('income', 0)
     income_type = data.get('income_type', 'yearly')
     is_blind = data.get('is_blind', False)
@@ -162,9 +194,9 @@ def process_tax_calculation(data):
     is_scotland = data.get('is_scotland', False)
     workweek_hours = Decimal(data.get('workweek_hours', 40))  # Default to 40 if not provided
 
-    tax_rates = get_tax_rates(2024)
+    tax_rates = get_tax_rates(year)  # Используем переданный год
     if not tax_rates:
-        return None, 'Tax rates not found for the year 2024.'
+        return None, f'Tax rates not found for the year {year}.'
 
     tax_details = calculate_tax_details(income, income_type, is_blind, no_ni, tax_rates, is_scotland, workweek_hours)
     tax_details.update({
@@ -176,24 +208,34 @@ def process_tax_calculation(data):
     return tax_details, None
 
 def calculator_view(request):
+    try:
+        year = get_default_year()  # Получаем текущий или последний доступный год
+    except ValueError as e:
+        return render(request, 'calculator/error.html', {'error_message': str(e)})
+
     if request.method == 'POST':
         form = TaxForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
-            context, error = process_tax_calculation(data)
+            selected_year = int(data.get('tax_year', year))  # Используем выбранный год или дефолтный
+            context, error = process_tax_calculation(data, selected_year)
             if error:
-                return render(request, 'calculator/index.html', {'form': form, 'error': error})
+                return render(request, 'calculator/index.html', {'form': form, 'error': error, 'year': selected_year})
             context['form'] = form
+            context['year'] = selected_year
             return render(request, 'calculator/index.html', context)
     else:
-        form = TaxForm()
-    return render(request, 'calculator/index.html', {'form': form})
+        form = TaxForm(initial={'tax_year': year})
+    return render(request, 'calculator/index.html', {'form': form, 'year': year})
+
 
 @csrf_exempt
 @api_view(['POST'])
 def calculate_tax(request):
-    context, error = process_tax_calculation(request.data)
+    year = int(request.data.get('tax_year', get_default_year()))  # Используем переданный год или дефолтный
+    context, error = process_tax_calculation(request.data, year)
     if error:
         return Response({'error': error}, status=404)
     return Response(context)
+
 
