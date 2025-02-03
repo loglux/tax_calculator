@@ -38,7 +38,7 @@ class TaxForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
-    # Поле для выбора налогового года
+    # Taxable year
     def generate_tax_year_choices():
         years = TaxRate.objects.values_list('year', flat=True).order_by('year')
         return [(year, f"{year}/{year + 1 - 2000}") for year in years]

@@ -23,21 +23,21 @@ def get_default_year():
     current_month = datetime.now().month
 
     try:
-        # Получаем последний доступный год из базы
+        # Get the last available year from DB
         latest_year = TaxRate.objects.latest('year').year
 
-        # Определяем текущий налоговый год
+        # Get the current taxable year
         if current_month < 4:  # Если до апреля, используем предыдущий календарный год
             current_tax_year = current_year - 1
         else:
             current_tax_year = current_year
 
-        # Если последний год в базе >= текущего налогового года, возвращаем текущий год
+        # if the last year in DB >= current taxable year, return the current year.
         if latest_year >= current_tax_year:
             return current_tax_year
-        return latest_year  # Если текущий год отсутствует, возвращаем последний доступный
+        return latest_year  # If current year is missing, return last available year
     except TaxRate.DoesNotExist:
-        # Если в базе нет данных, явно сигнализируем об этом
+        # If no data in DB, raise the Error
         raise ValueError("No tax years available in the database.")
 
 
@@ -48,14 +48,12 @@ def get_tax_rates(year):
         return None
 
 
-# from decimal import Decimal
-
 def calculate_tax_details(
     income,
     income_type,
     is_blind,
     no_ni,
-    tax_rates,       # <-- экземпляр модели TaxRate
+    tax_rates,
     is_scotland,
     workweek_hours
 ):
@@ -271,25 +269,27 @@ def process_tax_calculation(data, year):
     is_scotland = data.get('is_scotland', False)
     workweek_hours = Decimal(data.get('workweek_hours', 40))
 
-    # ТЕПЕРЬ get_tax_rates вернет ОБЪЕКТ TaxRate (или None)
+    # now get_tax_rates return OBJECT TaxRate (or None)
     tax_rate_obj = get_tax_rates(year)
     if not tax_rate_obj:
         return None, f'Tax rates not found for the year {year}.'
 
-    # Передаем объект tax_rate_obj в calculate_tax_details
+    # Transfer object tax_rate_obj to calculate_tax_details
     tax_details = calculate_tax_details(
         income,
         income_type,
         is_blind,
         no_ni,
-        tax_rate_obj,       # <-- уже не словарь
+        tax_rate_obj,
         is_scotland,
         workweek_hours
     )
 
-    # Если хотите вывести какие-то поля на экран,
-    # добавьте их в словарь (UI-контекст).
-    # Но учтите, что personal_allowance теперь получаем через атрибут:
+    """
+    If we need to show some fields on the screen,
+    we should add them into dictionary (UI context).
+    But bear in mind, we get personal_allowance through attribute:
+    """
     tax_details.update({
         'personal_allowance': f'{tax_rate_obj.personal_allowance:,.2f}',
         'salary': f'{tax_details["salary"]:,.2f}',

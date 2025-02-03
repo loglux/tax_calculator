@@ -3,15 +3,15 @@ from django.db import models
 class TaxRate(models.Model):
     year = models.IntegerField()
 
-    # Личный необлагаемый минимум
+    # Personal allowance
     personal_allowance = models.DecimalField(max_digits=10, decimal_places=2)
-    # Сумма, выше которой сокращается personal_allowance
+    # Sum, after personal_allowance is reduced
     personal_allowance_taper_threshold = models.DecimalField(
         max_digits=10, decimal_places=2,
         default=100000
     )
 
-    # Ставки и пороги для обычной части Великобритании
+    # Rates and thresholds for UK, except Scotland
     basic_rate = models.DecimalField(max_digits=5, decimal_places=2)
     higher_rate = models.DecimalField(max_digits=5, decimal_places=2)
     additional_rate = models.DecimalField(max_digits=5, decimal_places=2)
@@ -34,14 +34,14 @@ class TaxRate(models.Model):
         default=50000
     )
 
-    # Шотландские ставки
+    # Scottish rates
     starter_rate_scotland = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     basic_rate_scotland = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     intermediate_rate_scotland = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     higher_rate_scotland = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     top_rate_scotland = models.DecimalField(max_digits=5, decimal_places=2, default=0)
 
-    # Шотландские пороги
+    # Scottish thresholds
     starter_threshold_scotland = models.DecimalField(max_digits=10, decimal_places=2, default=2306)
     basic_threshold_scotland = models.DecimalField(max_digits=10, decimal_places=2, default=13991)
     intermediate_threshold_scotland = models.DecimalField(max_digits=10, decimal_places=2, default=31092)
