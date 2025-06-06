@@ -1,4 +1,3 @@
-# calculator/forms.py
 from django import forms
 from .models import TaxRate
 
@@ -39,16 +38,8 @@ class TaxForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
-    # Taxable year
-    # def generate_tax_year_choices():
-    #     years = TaxRate.objects.values_list('year', flat=True).order_by('year')
-    #     return [(year, f"{year}/{year + 1 - 2000}") for year in years]
-    #
-    # tax_year = forms.ChoiceField(
-    #     choices=generate_tax_year_choices(),
-    #     label='Tax Year',
-    #     widget=forms.Select(attrs={'class': 'form-select'})
-    # )
+    # Правильная реализация
+    @staticmethod
     def generate_tax_year_choices():
         years = TaxRate.objects.values_list('year', flat=True).order_by('year')
         return [(year, f"{year}/{year + 1 - 2000}") for year in years]
@@ -61,4 +52,4 @@ class TaxForm(forms.Form):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['tax_year'].choices = self.generate_tax_year_choices()
+        self.fields['tax_year'].choices = TaxForm.generate_tax_year_choices()
