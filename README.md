@@ -23,7 +23,7 @@ A web application and REST API for calculating UK tax and National Insurance.
 
 1. **Clone the repository:**
     ```sh
-    git clone https://github.com/<your-github>/tax_calculator.git
+    git clone https://github.com/loglux/tax_calculator.git
     cd tax_calculator
     ```
 
