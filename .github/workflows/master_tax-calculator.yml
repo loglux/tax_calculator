@@ -72,7 +72,7 @@ jobs:
       - name: Write rclone config
         run: |
           mkdir -p ~/.config/rclone
-          echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+          echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
 
       - name: Download SQLite DB from OneDrive
         run: |
