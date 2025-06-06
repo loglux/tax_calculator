@@ -62,21 +62,21 @@ jobs:
         run: unzip release.zip
 
       # Rclone, Onedrive
-      - name: Install rclone (user-local)
-        run: |
-          curl -O https://downloads.rclone.org/v1.69.3/rclone-v1.69.3-linux-amd64.zip
-          unzip rclone-v1.69.3-linux-amd64.zip
-          cp rclone-v1.69.3-linux-amd64/rclone ./rclone
-          chmod +x ./rclone
-
-      - name: Write rclone config
-        run: |
-          mkdir -p ~/.config/rclone
-          echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
-
-      - name: Download SQLite DB from OneDrive
-        run: |
-          ./rclone copy onedrive:DeployAssets/db.sqlite3 ./db.sqlite3
+#      - name: Install rclone (user-local)
+#        run: |
+#          curl -O https://downloads.rclone.org/v1.69.3/rclone-v1.69.3-linux-amd64.zip
+#          unzip rclone-v1.69.3-linux-amd64.zip
+#          cp rclone-v1.69.3-linux-amd64/rclone ./rclone
+#          chmod +x ./rclone
+#
+#      - name: Write rclone config
+#        run: |
+#          mkdir -p ~/.config/rclone
+#          echo "${{ secrets.RCLONE_CONF }}" > ~/.config/rclone/rclone.conf
+#
+#      - name: Download SQLite DB from OneDrive
+#        run: |
+#          ./rclone copy onedrive:DeployAssets/db.sqlite3 ./db.sqlite3
 
       - name: Login to Azure
         uses: azure/login@v2
