@@ -61,7 +61,19 @@ jobs:
       - name: Unzip artifact for deployment
         run: unzip release.zip
 
-      
+      - name: Install rclone
+        run: |
+          curl https://rclone.org/install.sh | bash
+
+      - name: Write rclone config
+        run: |
+          mkdir -p ~/.config/rclone
+          echo "${{ secrets.RCLONE_CONFIG }}" > ~/.config/rclone/rclone.conf
+
+      - name: Download SQLite DB from OneDrive
+        run: |
+          rclone copy onedrive:DeployAssets/db.sqlite3 ./db.sqlite3
+
       - name: Login to Azure
         uses: azure/login@v2
         with:
