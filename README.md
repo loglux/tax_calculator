@@ -2,7 +2,8 @@
 
 Web app and API for UK PAYE-style tax and National Insurance calculations.
 
-Live demo: `https://tax.log7.uk/calculator/`
+Live demo: [https://tax.log7.uk/calculator/](https://tax.log7.uk/calculator/)
+Azure Web App demo: [https://tax-calculator-abhnf5crftcxg4fu.eastus-01.azurewebsites.net/calculator/](https://tax-calculator-abhnf5crftcxg4fu.eastus-01.azurewebsites.net/calculator/)
 
 ## Current State
 - HMRC-oriented pipeline is the default and only calculation mode in UI/API.
@@ -49,7 +50,15 @@ curl -X POST http://127.0.0.1:8000/calculator/api/calculate/ \
       }'
 ```
 
+## CI/CD & Deployment
+- Source code is published via GitHub.
+- On push to `master`, GitHub Actions runs the deployment workflow.
+- The app is deployed to Azure Web App (`tax-calculator`).
+- Startup bootstrap is automated on Azure (`startup.sh`) to run migrations and rate sync.
+
+This part of the project is also used as a practical DevOps skills showcase
+(CI/CD pipeline setup, secure deployment flow, and environment-based runtime configuration).
+
 ## Notes
 - This is not an official HMRC service.
 - Use results for demonstration/planning, not as legal tax advice.
-- Do not commit local DB or secret files (`db.sqlite3`, `.env`).
