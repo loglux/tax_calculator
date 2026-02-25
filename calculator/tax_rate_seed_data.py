@@ -28,7 +28,7 @@ TAX_RATE_SEED_DATA = {
         "basic_threshold_scotland": Decimal("13991.00"),
         "intermediate_threshold_scotland": Decimal("31092.00"),
         "higher_threshold_scotland": Decimal("62430.00"),
-        "advanced_threshold_scotland": Decimal("112570.00"),
+        "advanced_threshold_scotland": Decimal("125140.00"),
     },
     2025: {
         "personal_allowance": Decimal("12570.00"),
@@ -54,7 +54,7 @@ TAX_RATE_SEED_DATA = {
         "basic_threshold_scotland": Decimal("14921.00"),
         "intermediate_threshold_scotland": Decimal("31092.00"),
         "higher_threshold_scotland": Decimal("62430.00"),
-        "advanced_threshold_scotland": Decimal("112570.00"),
+        "advanced_threshold_scotland": Decimal("125140.00"),
     },
     2026: {
         "personal_allowance": Decimal("12570.00"),

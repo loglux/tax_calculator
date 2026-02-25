@@ -68,6 +68,22 @@ body {
     min-width: 220px;
 }
 
+.footer-meta {
+    margin-top: 0.75rem;
+    text-align: right;
+}
+
+.footer-meta a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.footer-meta a:hover {
+    text-decoration: underline;
+}
+
 .card {
     border: 1px solid var(--line);
     border-radius: 18px;
@@ -234,6 +250,10 @@ pre.bg-light {
     .theme-switch {
         max-width: none;
         min-width: 0;
+    }
+
+    .footer-meta {
+        text-align: left;
     }
 
     .card {
