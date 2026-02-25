@@ -33,7 +33,17 @@ jobs:
       # Optional: Add step to run tests here (PyTest, Django test suites, etc.)
 
       - name: Zip artifact for deployment
-        run: zip release.zip ./* -r
+        run: |
+          zip -r release.zip . \
+            -x "venv/*" \
+            -x ".venv/*" \
+            -x "db.sqlite3" \
+            -x "*.sqlite3" \
+            -x ".env" \
+            -x ".env.*" \
+            -x "staticfiles/*" \
+            -x "__pycache__/*" \
+            -x "*.pyc"
 
       - name: Upload artifact for deployment jobs
         uses: actions/upload-artifact@v4
