@@ -5,147 +5,186 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tax & NI Calculator</title>
     {% load static %}
+    <link rel="icon" type="image/svg+xml" href="{% static 'assets/favicon.svg' %}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="{% static 'assets/css/styles.css' %}" type="text/css">
 </head>
 <body>
     <div class="container my-5">
-        <div class="card shadow-sm">
-            <div class="card-body">
-            <h1 id="taxYearTitle" class="card-title text-center">Tax & NI Calculator {{ year }} / {{ year|add:"1"|slice:"-2" }}</h1>
-                <form method="post" action="{% url 'calculator' %}">
-                    {% csrf_token %}
-                    
-                    
-                    <div class="row g-3 justify-content-center">
-    <div class="col-12 col-sm-4 col-md-4 mb-3 form-group">
-        <label for="id_tax_year" class="form-label">Tax Year:</label>
-        {{ form.tax_year }}
-    </div>
-</div>
-                    
-                    <div class="row g-3 justify-content-center">
-                        <!-- Income input -->
-                        <div class="col-12 col-sm-6 col-md-4 form-group">
-                            <label for="id_income" class="form-label">Income £:</label>
-                            {{ form.income }}
-                        </div>
-                        <!-- Income type input -->
-                        <div class="col-12 col-sm-6 col-md-4 form-group">
-                            <label for="id_income_type" class="form-label">Income Type:</label>
-                            {{ form.income_type }}
-                        </div>
-                        <!-- Workweek hours input -->
-                        <div class="col-12 col-sm-6 col-md-4 form-group">
-                            <label for="id_workweek_hours" class="form-label">Workweek Hours:</label>
-                            {{ form.workweek_hours }}
-                        </div>
-                    </div>
-
-<!-- Checkboxes -->
-<div class="row g-3 mt-3 justify-content-center">
-    <div class="col-12 col-md-6">
-        <div class="form-check">
-            <input type="checkbox" id="id_is_blind" name="is_blind" class="form-check-input" />
-            <label for="id_is_blind" class="form-check-label">Blind:</label>
-        </div>
-        <div class="form-check">
-            <input type="checkbox" id="id_no_ni" name="no_ni" class="form-check-input" />
-            <label for="id_no_ni" class="form-check-label">No NI:</label>
-        </div>
-    </div>
-    <div class="col-12 col-md-6">
-        <div class="form-check">
-            <input type="checkbox" id="id_mca" name="mca" class="form-check-input" />
-            <label for="id_mca" class="form-check-label">MCA:</label>
-        </div>
-        <div class="form-check">
-            <input type="checkbox" id="id_is_scotland" name="is_scotland" class="form-check-input" />
-            <label for="id_is_scotland" class="form-check-label">Scotland:</label>
-        </div>
-    </div>
-</div>
-
-                    <div class="d-flex justify-content-center mt-4">
-                        <button type="submit" class="btn btn-primary w-100">Show</button>
-                    </div>
-                </form>
-
-                {% if tax_paid %}
-                <div class="table-responsive mt-4">
-                    <table class="table table-bordered">
-                        <thead>
-                            <tr>
-                                <th></th>
-                                <th>Yearly</th>
-                                <th>Monthly</th>
-                                <th>Weekly</th>
-                                <th>Hourly</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Salary</td>
-                                <td id="salary">£{{ salary }}</td>
-                                <td id="monthlySalary">£{{ monthly_salary }}</td>
-                                <td id="weeklySalary">£{{ weekly_salary }}</td>
-                                <td id="hourlySalary">£{{ hourly_salary }}</td>
-                            </tr>
-                            <tr>
-                                <td>Personal Allowance</td>
-                                <td id="personalAllowance">£{{ personal_allowance }}</td>
-                                <td id="monthlyPersonalAllowance">£{{ monthly_personal_allowance }}</td>
-                                <td id="weeklyPersonalAllowance">£{{ weekly_personal_allowance }}</td>
-                                <td id="hourlyPersonalAllowance">£{{ hourly_personal_allowance }}</td>
-                            </tr>
-                            <tr>
-                                <td>Personal Allowance Reduction</td>
-                                <td id="personalAllowanceReduction">£{{ personal_allowance_reduction }}</td>
-                                <td></td>
-                                <td></td>
-                                <td></td>
-                            </tr>
-                            <tr>
-                                <td>Tax Paid</td>
-                                <td id="taxPaid">£{{ tax_paid }}</td>
-                                <td id="monthlyTaxPaid">£{{ monthly_tax_paid }}</td>
-                                <td id="weeklyTaxPaid">£{{ weekly_tax_paid }}</td>
-                                <td id="hourlyTaxPaid">£{{ hourly_tax_paid }}</td>
-                            </tr>
-                            <tr>
-                                <td>NI Contribution</td>
-                                <td id="niPaid">£{{ ni_paid }}</td>
-                                <td id="monthlyNiPaid">£{{ monthly_ni_paid }}</td>
-                                <td id="weeklyNiPaid">£{{ weekly_ni_paid }}</td>
-                                <td id="hourlyNiPaid">£{{ hourly_ni_paid }}</td>
-                            </tr>
-                            <tr>
-                                <td>Total Deduction</td>
-                                <td id="totalDeduction">£{{ total_deduction }}</td>
-                                <td id="monthlyTotalDeduction">£{{ monthly_total_deduction }}</td>
-                                <td id="weeklyTotalDeduction">£{{ weekly_total_deduction }}</td>
-                                <td id="hourlyTotalDeduction">£{{ hourly_total_deduction }}</td>
-                            </tr>
-                            <tr>
-                                <td>You Take Home</td>
-                                <td id="takeHome">£{{ take_home }}</td>
-                                <td id="monthlyTakeHome">£{{ monthly_take_home }}</td>
-                                <td id="weeklyTakeHome">£{{ weekly_take_home }}</td>
-                                <td id="hourlyTakeHome">£{{ hourly_take_home }}</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                {% endif %}
+        <div class="top-controls mb-3">
+            <ul class="nav nav-tabs" id="calculatorTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="calc-tab" data-bs-toggle="tab" data-bs-target="#calc-pane" type="button" role="tab" aria-controls="calc-pane" aria-selected="true">Calculator</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="api-tab" data-bs-toggle="tab" data-bs-target="#api-pane" type="button" role="tab" aria-controls="api-pane" aria-selected="false">API</button>
+                </li>
+            </ul>
+            <div class="theme-switch">
+                <label for="themeSelect" class="form-label mb-1">Theme</label>
+                <select id="themeSelect" class="form-select form-select-sm">
+                    <option value="theme-default">Professional Blue</option>
+                    <option value="theme-slate">Slate + Amber</option>
+                    <option value="theme-graphite">Graphite + Teal</option>
+                </select>
             </div>
         </div>
-    </div>
-    
-                    <!-- Section for API Usage -->
-                <div class="mt-5 p-3 bg-light rounded container">
-                    <h2>API Usage</h2>
-                    <p>This website provides a REST API to calculate tax and National Insurance (NI) details. To use the Tax & NI Calculator API, send a POST request to <code>https://tax.log7.uk/calculator/api/calculate/</code> with the following JSON payload:</p>
-                    <pre class="bg-light p-3">
+
+        <div class="tab-content" id="calculatorTabsContent">
+            <div class="tab-pane fade show active" id="calc-pane" role="tabpanel" aria-labelledby="calc-tab">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="alert alert-warning" role="alert">
+                            This is not an official HMRC website. This project is provided for skill demonstration and planning purposes only.
+                        </div>
+                        <h1 id="taxYearTitle" class="card-title text-center">Tax & NI Calculator {{ year }} / {{ year|add:"1"|slice:"-2" }}</h1>
+                        <form method="post" action="{% url 'calculator' %}">
+                            {% csrf_token %}
+
+                            <div class="row g-3 justify-content-center">
+                                <div class="col-12 col-sm-6 col-md-4 mb-3 form-group">
+                                    <label for="id_tax_year" class="form-label">Tax Year:</label>
+                                    {{ form.tax_year }}
+                                </div>
+                            </div>
+
+                            <div class="row g-3 justify-content-center">
+                                <div class="col-12 col-sm-6 col-md-4 form-group">
+                                    <label for="id_income" class="form-label">Income £:</label>
+                                    {{ form.income }}
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 form-group">
+                                    <label for="id_income_type" class="form-label">Income Type:</label>
+                                    {{ form.income_type }}
+                                </div>
+                                <div class="col-12 col-sm-6 col-md-4 form-group">
+                                    <label for="id_workweek_hours" class="form-label">Workweek Hours:</label>
+                                    {{ form.workweek_hours }}
+                                </div>
+                            </div>
+
+                            <div id="hmrcFields" class="row g-3 mt-2 justify-content-center">
+                                <div class="col-12 col-sm-6 col-md-4 form-group">
+                                    <label for="id_tax_code" class="form-label">Tax Code:</label>
+                                    {{ form.tax_code }}
+                                    <small class="form-text text-muted">
+                                        HMRC note: <code>S</code>/<code>C</code> tax-code prefixes override the Scotland checkbox.
+                                    </small>
+                                </div>
+                            </div>
+
+                            <div class="row g-3 mt-3 justify-content-center">
+                                <div class="col-12 col-md-6">
+                                    <div class="form-check">
+                                        {{ form.is_blind }}
+                                        <label for="{{ form.is_blind.id_for_label }}" class="form-check-label">Blind:</label>
+                                    </div>
+                                    <div class="form-check">
+                                        {{ form.no_ni }}
+                                        <label for="{{ form.no_ni.id_for_label }}" class="form-check-label">No NI:</label>
+                                    </div>
+                                </div>
+                                <div class="col-12 col-md-6">
+                                    <div class="form-check">
+                                        {{ form.mca }}
+                                        <label for="{{ form.mca.id_for_label }}" class="form-check-label">MCA:</label>
+                                    </div>
+                                    <div class="form-check">
+                                        {{ form.is_scotland }}
+                                        <label for="{{ form.is_scotland.id_for_label }}" class="form-check-label">Scotland:</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-center mt-4">
+                                <button type="submit" class="btn btn-primary w-100">Show</button>
+                            </div>
+                        </form>
+
+                        {% if has_result %}
+                        <div class="table-responsive mt-4">
+                            <table class="table table-bordered">
+                                <thead>
+                                    <tr>
+                                        <th></th>
+                                        <th>Yearly</th>
+                                        <th>Monthly</th>
+                                        <th>Weekly</th>
+                                        <th>Hourly</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td>Salary</td>
+                                        <td id="salary">£{{ salary }}</td>
+                                        <td id="monthlySalary">£{{ monthly_salary }}</td>
+                                        <td id="weeklySalary">£{{ weekly_salary }}</td>
+                                        <td id="hourlySalary">£{{ hourly_salary }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Personal Allowance</td>
+                                        <td id="personalAllowance">£{{ personal_allowance }}</td>
+                                        <td id="monthlyPersonalAllowance">£{{ monthly_personal_allowance }}</td>
+                                        <td id="weeklyPersonalAllowance">£{{ weekly_personal_allowance }}</td>
+                                        <td id="hourlyPersonalAllowance">£{{ hourly_personal_allowance }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Personal Allowance Reduction</td>
+                                        <td id="personalAllowanceReduction">£{{ personal_allowance_reduction }}</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>Tax Paid</td>
+                                        <td id="taxPaid">£{{ tax_paid }}</td>
+                                        <td id="monthlyTaxPaid">£{{ monthly_tax_paid }}</td>
+                                        <td id="weeklyTaxPaid">£{{ weekly_tax_paid }}</td>
+                                        <td id="hourlyTaxPaid">£{{ hourly_tax_paid }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>MCA Relief</td>
+                                        <td id="mcaReliefAmount">£{{ mca_relief_amount }}</td>
+                                        <td></td>
+                                        <td></td>
+                                        <td></td>
+                                    </tr>
+                                    <tr>
+                                        <td>NI Contribution</td>
+                                        <td id="niPaid">£{{ ni_paid }}</td>
+                                        <td id="monthlyNiPaid">£{{ monthly_ni_paid }}</td>
+                                        <td id="weeklyNiPaid">£{{ weekly_ni_paid }}</td>
+                                        <td id="hourlyNiPaid">£{{ hourly_ni_paid }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>Total Deduction</td>
+                                        <td id="totalDeduction">£{{ total_deduction }}</td>
+                                        <td id="monthlyTotalDeduction">£{{ monthly_total_deduction }}</td>
+                                        <td id="weeklyTotalDeduction">£{{ weekly_total_deduction }}</td>
+                                        <td id="hourlyTotalDeduction">£{{ hourly_total_deduction }}</td>
+                                    </tr>
+                                    <tr>
+                                        <td>You Take Home</td>
+                                        <td id="takeHome">£{{ take_home }}</td>
+                                        <td id="monthlyTakeHome">£{{ monthly_take_home }}</td>
+                                        <td id="weeklyTakeHome">£{{ weekly_take_home }}</td>
+                                        <td id="hourlyTakeHome">£{{ hourly_take_home }}</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="api-pane" role="tabpanel" aria-labelledby="api-tab">
+                <div class="card shadow-sm">
+                    <div class="card-body bg-light">
+                        <h2>API Usage</h2>
+                        <p>This website provides a REST API to calculate tax and National Insurance (NI) details. The API is protected and requires a JWT access token in the <code>Authorization: Bearer ...</code> header.</p>
+                        <p>Get token via <code>POST https://tax.log7.uk/calculator/api/token/</code> and then call <code>https://tax.log7.uk/calculator/api/calculate/</code>:</p>
+                        <pre class="bg-light p-3">
 {
   "income": 45000,
   "income_type": "yearly",
@@ -154,10 +193,11 @@
   "no_ni": false,
   "is_scotland": false
 }
-                    </pre>
-                    <p>Example using <code>curl</code> (Unix-like systems):</p>
-                    <pre class="bg-light p-3">
+                        </pre>
+                        <p>Example using <code>curl</code> (Unix-like systems):</p>
+                        <pre class="bg-light p-3">
 curl -X POST https://tax.log7.uk/calculator/api/calculate/ \
+    -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
     -H "Content-Type: application/json" \
     -d '{
           "income": 45000,
@@ -167,10 +207,11 @@ curl -X POST https://tax.log7.uk/calculator/api/calculate/ \
           "no_ni": false,
           "is_scotland": false
         }'
-                    </pre>
-                    <p>Example using <code>curl</code> (Windows):</p>
-                    <pre class="bg-light p-3">
+                        </pre>
+                        <p>Example using <code>curl</code> (Windows):</p>
+                        <pre class="bg-light p-3">
 curl -X POST https://tax.log7.uk/calculator/api/calculate/ ^
+    -H "Authorization: Bearer YOUR_ACCESS_TOKEN" ^
     -H "Content-Type: application/json" ^
     -d "{
           \"income\": 45000,
@@ -180,8 +221,9 @@ curl -X POST https://tax.log7.uk/calculator/api/calculate/ ^
           \"no_ni\": false,
           \"is_scotland\": false
         }"
-                    </pre>
-                    <p>The API will return a JSON response with the calculated tax and NI details.</p>
+                        </pre>
+                        <p>The API will return a JSON response with the calculated tax and NI details.</p>
+                    </div>
                 </div>
             </div>
         </div>
@@ -190,25 +232,42 @@ curl -X POST https://tax.log7.uk/calculator/api/calculate/ ^
 
     <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Находим поле выбора и заголовок
         const taxYearSelect = document.getElementById('id_tax_year');
         const taxYearTitle = document.getElementById('taxYearTitle');
+        const themeSelect = document.getElementById('themeSelect');
+        const body = document.body;
 
-        // Функция для обновления заголовка
         function updateTitle() {
-            const selectedYear = taxYearSelect.value; // Получаем значение (2024 или 2025)
-            const nextYear = parseInt(selectedYear) + 1; // Рассчитываем следующий год
-            const nextYearShort = nextYear.toString().slice(-2); // Берём последние две цифры
-
-            // Обновляем текст заголовка
+            const selectedYear = taxYearSelect.value;
+            const nextYear = parseInt(selectedYear) + 1;
+            const nextYearShort = nextYear.toString().slice(-2);
             taxYearTitle.textContent = `Tax & NI Calculator ${selectedYear} / ${nextYearShort}`;
         }
 
-        // Обновляем заголовок при изменении значения в списке
         taxYearSelect.addEventListener('change', updateTitle);
 
-        // Вызываем обновление при загрузке страницы (на случай, если выбранное значение уже есть)
         updateTitle();
+
+        const allowedThemes = ['theme-default', 'theme-slate', 'theme-graphite'];
+        const savedTheme = localStorage.getItem('ui_theme');
+        const applyTheme = (theme) => {
+            body.classList.remove('theme-slate', 'theme-graphite');
+            if (theme === 'theme-slate') {
+                body.classList.add('theme-slate');
+            } else if (theme === 'theme-graphite') {
+                body.classList.add('theme-graphite');
+            }
+        };
+
+        const initialTheme = allowedThemes.includes(savedTheme) ? savedTheme : 'theme-default';
+        themeSelect.value = initialTheme;
+        applyTheme(initialTheme);
+
+        themeSelect.addEventListener('change', function () {
+            const selected = allowedThemes.includes(themeSelect.value) ? themeSelect.value : 'theme-default';
+            applyTheme(selected);
+            localStorage.setItem('ui_theme', selected);
+        });
     });
 </script>
 

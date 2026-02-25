@@ -1,0 +1,17 @@
+[flake8]
+max-line-length = 100
+exclude =
+    .git,
+    __pycache__,
+    migrations,
+    staticfiles,
+    .venv,
+    venv
+extend-ignore =
+    E203,
+    W503
+per-file-ignores =
+    settings_docker.py:F403,F405
+    tax_calculator/azure.py:F403,F405
+    tax_calculator/settings.py:E402,F401,F403
+    tax_calculator/settings_docker.py:F403,F405

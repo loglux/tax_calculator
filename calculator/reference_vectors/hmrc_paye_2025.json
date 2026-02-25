@@ -1,0 +1,278 @@
+[
+  {
+    "name": "standard_1257l",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "1257L"
+    },
+    "expected": {
+      "tax_paid": "11431.92",
+      "ni_paid": "3213.12",
+      "take_home": "45354.96",
+      "hmrc_period_tax": "952.66",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_0t",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "0T"
+    },
+    "expected": {
+      "tax_paid": "16459.92",
+      "ni_paid": "3213.12",
+      "take_home": "40326.96",
+      "hmrc_period_tax": "1371.66",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_k500",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "K500"
+    },
+    "expected": {
+      "tax_paid": "18459.96",
+      "ni_paid": "3213.12",
+      "take_home": "38326.92",
+      "hmrc_period_tax": "1538.33",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_1257m",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "1257M"
+    },
+    "expected": {
+      "tax_paid": "10927.92",
+      "ni_paid": "3213.12",
+      "take_home": "45858.96",
+      "hmrc_period_tax": "910.66",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_1257n",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "1257N"
+    },
+    "expected": {
+      "tax_paid": "11935.92",
+      "ni_paid": "3213.12",
+      "take_home": "44850.96",
+      "hmrc_period_tax": "994.66",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_br",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "BR"
+    },
+    "expected": {
+      "tax_paid": "12000.00",
+      "ni_paid": "3213.12",
+      "take_home": "44786.88",
+      "hmrc_period_tax": "1000.00",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_d0",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "D0"
+    },
+    "expected": {
+      "tax_paid": "24000.00",
+      "ni_paid": "3213.12",
+      "take_home": "32786.88",
+      "hmrc_period_tax": "2000.00",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_d1",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "D1"
+    },
+    "expected": {
+      "tax_paid": "27000.00",
+      "ni_paid": "3213.12",
+      "take_home": "29786.88",
+      "hmrc_period_tax": "2250.00",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_nt",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "NT"
+    },
+    "expected": {
+      "tax_paid": "0.00",
+      "ni_paid": "3213.12",
+      "take_home": "56786.88",
+      "hmrc_period_tax": "0.00",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_sbr",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "SBR"
+    },
+    "expected": {
+      "tax_paid": "12000.00",
+      "ni_paid": "3213.12",
+      "take_home": "44786.88",
+      "hmrc_period_tax": "1000.00",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_sd0",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "SD0"
+    },
+    "expected": {
+      "tax_paid": "25200.00",
+      "ni_paid": "3213.12",
+      "take_home": "31586.88",
+      "hmrc_period_tax": "2100.00",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "code_sd1",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "SD1"
+    },
+    "expected": {
+      "tax_paid": "28800.00",
+      "ni_paid": "3213.12",
+      "take_home": "27986.88",
+      "hmrc_period_tax": "2400.00",
+      "hmrc_period_ni": "267.76"
+    }
+  },
+  {
+    "name": "cumulative_period6_with_ytd",
+    "year": 2025,
+    "payload": {
+      "income": "60000",
+      "income_type": "yearly",
+      "workweek_hours": "40",
+      "is_blind": false,
+      "no_ni": false,
+      "is_scotland": false,
+      "calculation_mode": "hmrc_paye",
+      "tax_code": "1257L",
+      "period_number": 6,
+      "ytd_gross": "25000",
+      "ytd_tax_paid": "5000"
+    },
+    "expected": {
+      "tax_paid": "8592.00",
+      "ni_paid": "3213.12",
+      "take_home": "48194.88",
+      "hmrc_period_tax": "716.00",
+      "hmrc_period_ni": "267.76"
+    }
+  }
+]

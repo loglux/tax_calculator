@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  web:
+    container_name: tax_calculator
+    build: .
+    command: gunicorn tax_calculator.wsgi:application --bind 0.0.0.0:9000
+    network_mode: host
+    volumes:
+      - .:/app
+      - static_volume:/app/staticfiles
+    environment:
+      - DEBUG=${DEBUG}
+      - SECRET_KEY=${SECRET_KEY}
+      - DJANGO_ALLOWED_HOSTS=${DJANGO_ALLOWED_HOSTS}
+
+volumes:
+  static_volume:

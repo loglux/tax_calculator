@@ -1,17 +1,40 @@
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework import viewsets
 from rest_framework.decorators import api_view
+from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.response import Response
+from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
+from rest_framework_simplejwt.authentication import JWTAuthentication
+
 from .forms import TaxForm
 from .models import TaxRate
-from rest_framework import viewsets
 from .serializers import TaxRateSerializer
-from decimal import Decimal
+
+WEEKS_IN_YEAR = Decimal("52")
+MONTHS_IN_YEAR = Decimal("12")
+HUNDRED = Decimal("100")
+PENNY = Decimal("0.01")
+WEEKLY_NI_TABLE_STEP = Decimal("1")
+MONTHLY_NI_TABLE_STEP = Decimal("4")
 
 
 class TaxRateViewSet(viewsets.ModelViewSet):
     queryset = TaxRate.objects.all()
     serializer_class = TaxRateSerializer
+
+
+class PublicTokenObtainPairView(TokenObtainPairView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+
+class PublicTokenRefreshView(TokenRefreshView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
 
 def get_default_year():
     """
@@ -23,311 +46,497 @@ def get_default_year():
     current_month = datetime.now().month
 
     try:
-        # Получаем последний доступный год из базы
-        latest_year = TaxRate.objects.latest('year').year
+        latest_year = TaxRate.objects.latest("year").year
 
-        # Определяем текущий налоговый год
-        if current_month < 4:  # Если до апреля, используем предыдущий календарный год
+        if current_month < 4:
             current_tax_year = current_year - 1
         else:
             current_tax_year = current_year
 
-        # Если последний год в базе >= текущего налогового года, возвращаем текущий год
         if latest_year >= current_tax_year:
             return current_tax_year
-        return latest_year  # Если текущий год отсутствует, возвращаем последний доступный
+        return latest_year
     except TaxRate.DoesNotExist:
-        # Если в базе нет данных, явно сигнализируем об этом
         raise ValueError("No tax years available in the database.")
 
 
 def get_tax_rates(year):
-    try:
-        return TaxRate.objects.get(year=year)
-    except TaxRate.DoesNotExist:
-        return None
+    return TaxRate.objects.filter(year=year).order_by("-id").first()
 
 
-# from decimal import Decimal
+def _annual_income(income, income_type, workweek_hours):
+    if income_type == "hourly":
+        return Decimal(income) * Decimal(workweek_hours) * WEEKS_IN_YEAR
+    return Decimal(income)
 
-def calculate_tax_details(
+
+def _apply_mca_relief(tax_paid, tax_rates, mca_enabled):
+    if not mca_enabled:
+        return tax_paid, Decimal("0")
+    mca_relief = min(Decimal(tax_rates.mca_relief_amount), max(Decimal("0"), tax_paid))
+    return tax_paid - mca_relief, mca_relief
+
+
+def _ni_paid(
+    income,
+    tax_rates,
+    no_ni,
+    period_factor=Decimal("1"),
+    hmrc_stepwise=False,
+    payroll_frequency="annual",
+):
+    if no_ni:
+        return Decimal("0")
+
+    ni_threshold = Decimal(tax_rates.ni_threshold) * period_factor
+    ni_upper_limit = Decimal(tax_rates.ni_upper_limit) * period_factor
+
+    main_rate = Decimal(tax_rates.ni_rate) / HUNDRED
+    additional_rate = Decimal(tax_rates.ni_additional_rate) / HUNDRED
+
+    income_for_ni = Decimal(income)
+    if hmrc_stepwise:
+        ni_table_step = (
+            WEEKLY_NI_TABLE_STEP
+            if payroll_frequency == "weekly"
+            else MONTHLY_NI_TABLE_STEP if payroll_frequency == "monthly" else Decimal("0")
+        )
+        if ni_table_step > 0:
+            income_for_ni = _floor_to_step(income_for_ni, ni_table_step)
+            ni_threshold = _floor_to_step(ni_threshold, ni_table_step)
+            ni_upper_limit = _floor_to_step(ni_upper_limit, ni_table_step)
+
+    income_above_threshold = max(Decimal("0"), income_for_ni - ni_threshold)
+    main_band = max(Decimal("0"), min(income_above_threshold, ni_upper_limit - ni_threshold))
+    income_above_upper = max(Decimal("0"), income_above_threshold - (ni_upper_limit - ni_threshold))
+
+    ni_main = _to_money(main_band * main_rate) if hmrc_stepwise else main_band * main_rate
+    ni_additional = (
+        _to_money(income_above_upper * additional_rate)
+        if hmrc_stepwise
+        else income_above_upper * additional_rate
+    )
+
+    total_ni = ni_main + ni_additional
+    return _to_money(total_ni) if hmrc_stepwise else total_ni
+
+
+def _to_money(value):
+    return Decimal(value).quantize(PENNY, rounding=ROUND_HALF_UP)
+
+
+def _floor_to_step(value, step):
+    value_dec = Decimal(value)
+    step_dec = Decimal(step)
+    if step_dec <= 0:
+        return value_dec
+    return (value_dec // step_dec) * step_dec
+
+
+def _hmrc_tax_from_bands(taxable_income, bands):
+    remaining = max(Decimal("0"), Decimal(taxable_income))
+    total_tax = Decimal("0")
+
+    for band_size, rate in bands:
+        if remaining <= 0:
+            break
+        taxable_in_band = min(remaining, band_size) if band_size is not None else remaining
+        total_tax += _to_money(taxable_in_band * rate)
+        remaining -= taxable_in_band
+
+    return _to_money(total_tax)
+
+
+def _rate_fraction(raw_rate):
+    rate = Decimal(raw_rate)
+    return rate / HUNDRED if rate > Decimal("1") else rate
+
+
+def _periods_in_year(payroll_frequency):
+    if payroll_frequency == "weekly":
+        return WEEKS_IN_YEAR
+    if payroll_frequency == "monthly":
+        return MONTHS_IN_YEAR
+    return Decimal("1")
+
+
+def _apply_allowance_taper(annual_allowance, annual_income, taper_threshold):
+    if annual_allowance <= Decimal("0"):
+        return annual_allowance, Decimal("0")
+
+    if annual_income <= taper_threshold:
+        return annual_allowance, Decimal("0")
+
+    reduction = min(annual_allowance, (annual_income - taper_threshold) / Decimal("2"))
+    return annual_allowance - reduction, reduction
+
+
+def _parse_tax_code_metadata(tax_code):
+    code = str(tax_code).strip().upper().replace(" ", "")
+    if not code:
+        raise ValueError("tax_code is required for hmrc_paye mode.")
+
+    force_non_cumulative = False
+    for marker in ("W1", "M1"):
+        if code.endswith(marker):
+            code = code[: -len(marker)]
+            force_non_cumulative = True
+            break
+    if code.endswith("X"):
+        code = code[:-1]
+        force_non_cumulative = True
+
+    region_hint = None
+    if code and code[0] in ("S", "C"):
+        region_hint = "scotland" if code[0] == "S" else "rUK"
+        code = code[1:]
+
+    if not code:
+        raise ValueError(f"Invalid tax code: {tax_code}")
+
+    return {
+        "core_code": code,
+        "force_non_cumulative": force_non_cumulative,
+        "region_hint": region_hint,
+    }
+
+
+def _parse_tax_code_annual_allowance(tax_code):
+    parsed = _parse_tax_code_metadata(tax_code)
+    code = parsed["core_code"]
+
+    if code in ("NT", "BR", "D0", "D1"):
+        return Decimal("0")
+
+    if code.endswith("M") or code.endswith("N"):
+        suffix = code[-1]
+        digits = "".join(ch for ch in code[:-1] if ch.isdigit())
+        if not digits:
+            raise ValueError(f"Invalid tax code: {tax_code}")
+        allowance = Decimal(digits) * Decimal("10")
+        marriage_transfer = Decimal("1260")
+        return allowance + marriage_transfer if suffix == "M" else allowance - marriage_transfer
+
+    if code.startswith("K"):
+        digits = "".join(ch for ch in code[1:] if ch.isdigit())
+        if not digits:
+            raise ValueError(f"Invalid tax code: {tax_code}")
+        return Decimal(digits) * Decimal("-10")
+
+    digits = "".join(ch for ch in code if ch.isdigit())
+    if not digits:
+        raise ValueError(f"Invalid tax code: {tax_code}")
+    return Decimal(digits) * Decimal("10")
+
+
+def _parse_special_tax_code_rate(tax_code, tax_rates, is_scotland):
+    parsed = _parse_tax_code_metadata(tax_code)
+    code = parsed["core_code"]
+
+    if code == "NT":
+        return Decimal("0")
+    if code == "BR":
+        return _rate_fraction(
+            tax_rates.basic_rate_scotland if is_scotland else tax_rates.basic_rate
+        )
+    if code == "D0":
+        return _rate_fraction(
+            tax_rates.higher_rate_scotland if is_scotland else tax_rates.higher_rate
+        )
+    if code == "D1":
+        return _rate_fraction(
+            tax_rates.top_rate_scotland if is_scotland else tax_rates.additional_rate
+        )
+    return None
+
+
+def _rest_uk_tax_with_scaled_thresholds(taxable_income, tax_rates, period_factor):
+    basic_threshold = Decimal(tax_rates.basic_threshold) * period_factor
+    higher_threshold = Decimal(tax_rates.higher_threshold) * period_factor
+
+    basic_rate = _rate_fraction(tax_rates.basic_rate)
+    higher_rate = _rate_fraction(tax_rates.higher_rate)
+    additional_rate = _rate_fraction(tax_rates.additional_rate)
+
+    bands = (
+        (basic_threshold, basic_rate),
+        (max(Decimal("0"), higher_threshold - basic_threshold), higher_rate),
+        (None, additional_rate),
+    )
+    return _hmrc_tax_from_bands(taxable_income, bands)
+
+
+def _scotland_tax_with_scaled_thresholds(taxable_income, tax_rates, period_factor):
+    starter_threshold = Decimal(tax_rates.starter_threshold_scotland) * period_factor
+    basic_threshold = Decimal(tax_rates.basic_threshold_scotland) * period_factor
+    intermediate_threshold = Decimal(tax_rates.intermediate_threshold_scotland) * period_factor
+    higher_threshold = Decimal(tax_rates.higher_threshold_scotland) * period_factor
+    advanced_threshold = Decimal(tax_rates.advanced_threshold_scotland) * period_factor
+
+    starter_rate = _rate_fraction(tax_rates.starter_rate_scotland)
+    basic_rate = _rate_fraction(tax_rates.basic_rate_scotland)
+    intermediate_rate = _rate_fraction(tax_rates.intermediate_rate_scotland)
+    higher_rate = _rate_fraction(tax_rates.higher_rate_scotland)
+    advanced_rate = _rate_fraction(tax_rates.advanced_rate_scotland)
+    top_rate = _rate_fraction(tax_rates.top_rate_scotland)
+
+    bands = (
+        (starter_threshold, starter_rate),
+        (max(Decimal("0"), basic_threshold - starter_threshold), basic_rate),
+        (
+            max(Decimal("0"), intermediate_threshold - basic_threshold),
+            intermediate_rate,
+        ),
+        (max(Decimal("0"), higher_threshold - intermediate_threshold), higher_rate),
+        (max(Decimal("0"), advanced_threshold - higher_threshold), advanced_rate),
+        (None, top_rate),
+    )
+    return _hmrc_tax_from_bands(taxable_income, bands)
+
+
+def calculate_tax_details_hmrc_paye(
     income,
     income_type,
     is_blind,
     no_ni,
-    tax_rates,       # <-- экземпляр модели TaxRate
+    tax_rates,
     is_scotland,
-    workweek_hours
+    workweek_hours,
+    tax_code,
+    payroll_frequency,
+    hmrc_basis,
+    period_number,
+    ytd_tax_paid,
+    ytd_gross,
+    mca,
 ):
-    """
-    Полностью убираем хардкод: все пороги и ставки подтягиваем из tax_rates.
-    """
-    # 1. Годовой доход (преобразуем, если почасовая ставка)
-    if income_type == 'hourly':
-        salary = Decimal(income) * Decimal(workweek_hours) * Decimal(52)
-    else:
-        salary = Decimal(income)
+    salary = _annual_income(income, income_type, workweek_hours)
+    periods = _periods_in_year(payroll_frequency)
+    parsed_tax_code = _parse_tax_code_metadata(tax_code)
+    effective_is_scotland = is_scotland
+    if parsed_tax_code["region_hint"] == "scotland":
+        effective_is_scotland = True
+    elif parsed_tax_code["region_hint"] == "rUK":
+        effective_is_scotland = False
 
-    # Чтобы код дальше был единообразным:
-    income = salary
+    effective_hmrc_basis = (
+        "non_cumulative" if parsed_tax_code["force_non_cumulative"] else hmrc_basis
+    )
+    period_number = max(1, min(int(period_number), int(periods)))
+    period_gross = salary / periods
+    period_factor = Decimal("1") / periods
 
-    # 2. Personal allowance из БД
-    personal_allowance = Decimal(tax_rates.personal_allowance)
-    personal_allowance_reduction = Decimal('0')
+    special_rate = _parse_special_tax_code_rate(tax_code, tax_rates, effective_is_scotland)
+    annual_allowance = Decimal("0")
+    personal_allowance_reduction = Decimal("0")
 
-    # Порог, начиная с которого уменьшается personal allowance
-    taper_threshold = Decimal(tax_rates.personal_allowance_taper_threshold)
-
-    if income > taper_threshold:
-        # По британским правилам: за каждые 2 фунта сверх порога уменьшается на 1 фунт
-        personal_allowance_reduction = min(
-            personal_allowance,
-            (income - taper_threshold) / Decimal('2')
-        )
-        personal_allowance -= personal_allowance_reduction
-
-    # 3. Blind allowance (всё ещё хардкод 2500,
-    # но при желании можно хранить и это в базе)
-    if is_blind:
-        personal_allowance += Decimal('2500')
-
-    # 4. Налогооблагаемый доход
-    taxable_income = max(Decimal('0'), income - personal_allowance)
-
-    # 5. Подготовка переменных для Шотландии
-    starter_rate_scotland_amount = Decimal('0')
-    basic_rate_scotland_amount = Decimal('0')
-    intermediate_rate_scotland_amount = Decimal('0')
-    higher_rate_scotland_amount = Decimal('0')
-    top_rate_scotland_amount = Decimal('0')
-
-    # Прочитаем шотландские пороги
-    starter_threshold_sco = Decimal(tax_rates.starter_threshold_scotland)
-    basic_threshold_sco = Decimal(tax_rates.basic_threshold_scotland)
-    intermediate_threshold_sco = Decimal(tax_rates.intermediate_threshold_scotland)
-    higher_threshold_sco = Decimal(tax_rates.higher_threshold_scotland)
-
-    # Прочитаем шотландские ставки
-    starter_rate_sco = Decimal(tax_rates.starter_rate_scotland)
-    basic_rate_sco = Decimal(tax_rates.basic_rate_scotland)
-    intermediate_rate_sco = Decimal(tax_rates.intermediate_rate_scotland)
-    higher_rate_sco = Decimal(tax_rates.higher_rate_scotland)
-    top_rate_sco = Decimal(tax_rates.top_rate_scotland)
-
-    # Прочитаем "обычные" (не-Шотландия) пороги
-    basic_threshold = Decimal(tax_rates.basic_threshold)   # 37700
-    higher_threshold = Decimal(tax_rates.higher_threshold) # 125140
-
-    # Прочитаем ставки (делим на 100, т.к. храним 20.00 = 20%)
-    basic_rate = Decimal(tax_rates.basic_rate) / Decimal('100')
-    higher_rate = Decimal(tax_rates.higher_rate) / Decimal('100')
-    additional_rate = Decimal(tax_rates.additional_rate) / Decimal('100')
-
-    # 6. Расчёт налога (Шотландия vs остальная Британия)
-    if is_scotland:
-        if taxable_income <= starter_threshold_sco:
-            starter_rate_scotland_amount = taxable_income * starter_rate_sco
-        elif taxable_income <= basic_threshold_sco:
-            starter_rate_scotland_amount = starter_threshold_sco * starter_rate_sco
-            basic_rate_scotland_amount = (taxable_income - starter_threshold_sco) * basic_rate_sco
-        elif taxable_income <= intermediate_threshold_sco:
-            starter_rate_scotland_amount = starter_threshold_sco * starter_rate_sco
-            basic_rate_scotland_amount = (basic_threshold_sco - starter_threshold_sco) * basic_rate_sco
-            intermediate_rate_scotland_amount = (taxable_income - basic_threshold_sco) * intermediate_rate_sco
-        elif taxable_income <= higher_threshold_sco:
-            starter_rate_scotland_amount = starter_threshold_sco * starter_rate_sco
-            basic_rate_scotland_amount = (basic_threshold_sco - starter_threshold_sco) * basic_rate_sco
-            intermediate_rate_scotland_amount = (intermediate_threshold_sco - basic_threshold_sco) * intermediate_rate_sco
-            higher_rate_scotland_amount = (taxable_income - intermediate_threshold_sco) * higher_rate_sco
+    if special_rate is not None:
+        if effective_hmrc_basis == "cumulative":
+            gross_to_date = Decimal(ytd_gross) + period_gross
+            tax_to_date = _to_money(gross_to_date * special_rate)
+            period_tax = _to_money(tax_to_date - Decimal(ytd_tax_paid))
         else:
-            # всё, что выше higher_threshold_sco, попадает под top_rate_sco
-            starter_rate_scotland_amount = starter_threshold_sco * starter_rate_sco
-            basic_rate_scotland_amount = (basic_threshold_sco - starter_threshold_sco) * basic_rate_sco
-            intermediate_rate_scotland_amount = (intermediate_threshold_sco - basic_threshold_sco) * intermediate_rate_sco
-            higher_rate_scotland_amount = (higher_threshold_sco - intermediate_threshold_sco) * higher_rate_sco
-            top_rate_scotland_amount = (taxable_income - higher_threshold_sco) * top_rate_sco
-
-        tax_paid = (
-            starter_rate_scotland_amount +
-            basic_rate_scotland_amount +
-            intermediate_rate_scotland_amount +
-            higher_rate_scotland_amount +
-            top_rate_scotland_amount
+            period_tax = _to_money(period_gross * special_rate)
+    else:
+        annual_allowance = _parse_tax_code_annual_allowance(tax_code)
+        if is_blind:
+            annual_allowance += Decimal(tax_rates.blind_allowance)
+        annual_allowance, personal_allowance_reduction = _apply_allowance_taper(
+            annual_allowance,
+            salary,
+            Decimal(tax_rates.personal_allowance_taper_threshold),
         )
-    else:
-        if taxable_income <= basic_threshold:
-            tax_paid = taxable_income * basic_rate
-        elif taxable_income <= higher_threshold:
-            tax_paid = (
-                basic_threshold * basic_rate +
-                (taxable_income - basic_threshold) * higher_rate
+
+        if effective_hmrc_basis == "cumulative":
+            gross_to_date = Decimal(ytd_gross) + period_gross
+            allowance_to_date = _to_money(annual_allowance * (Decimal(period_number) / periods))
+            taxable_to_date = max(Decimal("0"), _to_money(gross_to_date - allowance_to_date))
+            tax_fn = (
+                _scotland_tax_with_scaled_thresholds
+                if effective_is_scotland
+                else _rest_uk_tax_with_scaled_thresholds
             )
+            tax_to_date = _to_money(
+                tax_fn(taxable_to_date, tax_rates, Decimal(period_number) / periods)
+            )
+            period_tax = _to_money(tax_to_date - Decimal(ytd_tax_paid))
         else:
-            tax_paid = (
-                basic_threshold * basic_rate +
-                (higher_threshold - basic_threshold) * higher_rate +
-                (taxable_income - higher_threshold) * additional_rate
+            taxable_period = max(
+                Decimal("0"), _to_money(period_gross - (annual_allowance / periods))
             )
+            tax_fn = (
+                _scotland_tax_with_scaled_thresholds
+                if effective_is_scotland
+                else _rest_uk_tax_with_scaled_thresholds
+            )
+            period_tax = _to_money(tax_fn(taxable_period, tax_rates, period_factor))
 
-    # 7. Расчёт National Insurance
-    if no_ni:
-        ni_paid = Decimal('0')
-    else:
-        # Порог (threshold) и верхний лимит (upper_limit) из БД
-        ni_threshold_val = Decimal(tax_rates.ni_threshold)
-        ni_upper_limit = Decimal(tax_rates.ni_upper_limit)
+    period_ni = _ni_paid(
+        period_gross,
+        tax_rates,
+        no_ni,
+        period_factor=period_factor,
+        hmrc_stepwise=True,
+        payroll_frequency=payroll_frequency,
+    )
 
-        main_rate = Decimal(tax_rates.ni_rate) / Decimal('100')
-        additional_ni_rate = Decimal(tax_rates.ni_additional_rate) / Decimal('100')
-
-        # Считаем доход, превышающий ni_threshold
-        income_above_threshold = income - ni_threshold_val
-        if income_above_threshold < 0:
-            income_above_threshold = Decimal('0')
-
-        # Всё, что выше ni_upper_limit, идёт по дополнительной ставке
-        income_in_main_band = min(income_above_threshold, ni_upper_limit - ni_threshold_val)
-        if income_in_main_band < 0:
-            income_in_main_band = Decimal('0')
-
-        ni_paid_main = income_in_main_band * main_rate
-
-        # Проверяем, осталось ли что-то выше ni_upper_limit:
-        income_above_upper = income_above_threshold - (ni_upper_limit - ni_threshold_val)
-        if income_above_upper < 0:
-            income_above_upper = Decimal('0')
-
-        ni_paid_additional = income_above_upper * additional_ni_rate
-
-        ni_paid = ni_paid_main + ni_paid_additional
-
-    # 8. Суммарные удержания и чистый доход
-    total_deduction = tax_paid + ni_paid
-    take_home = income - total_deduction
-
-    # 9. Эквиваленты по месяцам, неделям, часам
-    monthly_salary = salary / 12
-    weekly_salary = salary / 52
-    hourly_salary = salary / (52 * workweek_hours)
-
-    monthly_personal_allowance = personal_allowance / 12
-    weekly_personal_allowance = personal_allowance / 52
-    hourly_personal_allowance = personal_allowance / (52 * workweek_hours)
-
-    monthly_tax_paid = tax_paid / 12
-    weekly_tax_paid = tax_paid / 52
-    hourly_tax_paid = tax_paid / (52 * workweek_hours)
-
-    monthly_ni_paid = ni_paid / 12
-    weekly_ni_paid = ni_paid / 52
-    hourly_ni_paid = ni_paid / (52 * workweek_hours)
-
-    monthly_total_deduction = total_deduction / 12
-    weekly_total_deduction = total_deduction / 52
-    hourly_total_deduction = total_deduction / (52 * workweek_hours)
-
-    monthly_take_home = take_home / 12
-    weekly_take_home = take_home / 52
-    hourly_take_home = take_home / (52 * workweek_hours)
+    annual_tax_estimate = _to_money(period_tax * periods)
+    annual_tax_estimate, mca_relief_amount = _apply_mca_relief(annual_tax_estimate, tax_rates, mca)
+    annual_ni_estimate = _to_money(period_ni * periods)
+    annual_take_home = _to_money(salary - annual_tax_estimate - annual_ni_estimate)
 
     return {
-        'tax_paid': round(tax_paid, 2),
-        'ni_paid': round(ni_paid, 2),
-        'total_deduction': round(total_deduction, 2),
-        'take_home': round(take_home, 2),
-        'personal_allowance_reduction': round(personal_allowance_reduction, 2),
-        'starter_rate_scotland_amount': round(starter_rate_scotland_amount, 2),
-        'basic_rate_scotland_amount': round(basic_rate_scotland_amount, 2),
-        'intermediate_rate_scotland_amount': round(intermediate_rate_scotland_amount, 2),
-        'higher_rate_scotland_amount': round(higher_rate_scotland_amount, 2),
-        'top_rate_scotland_amount': round(top_rate_scotland_amount, 2),
-        'monthly_salary': round(monthly_salary, 2),
-        'weekly_salary': round(weekly_salary, 2),
-        'hourly_salary': round(hourly_salary, 2),
-        'monthly_personal_allowance': round(monthly_personal_allowance, 2),
-        'weekly_personal_allowance': round(weekly_personal_allowance, 2),
-        'hourly_personal_allowance': round(hourly_personal_allowance, 2),
-        'monthly_tax_paid': round(monthly_tax_paid, 2),
-        'weekly_tax_paid': round(weekly_tax_paid, 2),
-        'hourly_tax_paid': round(hourly_tax_paid, 2),
-        'monthly_ni_paid': round(monthly_ni_paid, 2),
-        'weekly_ni_paid': round(weekly_ni_paid, 2),
-        'hourly_ni_paid': round(hourly_ni_paid, 2),
-        'monthly_total_deduction': round(monthly_total_deduction, 2),
-        'weekly_total_deduction': round(weekly_total_deduction, 2),
-        'hourly_total_deduction': round(hourly_total_deduction, 2),
-        'monthly_take_home': round(monthly_take_home, 2),
-        'weekly_take_home': round(weekly_take_home, 2),
-        'hourly_take_home': round(hourly_take_home, 2),
-        'salary': round(salary, 2),
+        "tax_paid": _to_money(annual_tax_estimate),
+        "ni_paid": _to_money(annual_ni_estimate),
+        "total_deduction": _to_money(annual_tax_estimate + annual_ni_estimate),
+        "take_home": _to_money(annual_take_home),
+        "personal_allowance_reduction": _to_money(personal_allowance_reduction),
+        "starter_rate_scotland_amount": _to_money(Decimal("0")),
+        "basic_rate_scotland_amount": _to_money(Decimal("0")),
+        "intermediate_rate_scotland_amount": _to_money(Decimal("0")),
+        "higher_rate_scotland_amount": _to_money(Decimal("0")),
+        "top_rate_scotland_amount": _to_money(Decimal("0")),
+        "advanced_rate_scotland_amount": _to_money(Decimal("0")),
+        "mca_relief_amount": _to_money(mca_relief_amount),
+        "monthly_salary": _to_money(salary / MONTHS_IN_YEAR),
+        "weekly_salary": _to_money(salary / WEEKS_IN_YEAR),
+        "hourly_salary": _to_money(salary / (WEEKS_IN_YEAR * workweek_hours)),
+        "monthly_personal_allowance": _to_money(annual_allowance / MONTHS_IN_YEAR),
+        "weekly_personal_allowance": _to_money(annual_allowance / WEEKS_IN_YEAR),
+        "hourly_personal_allowance": _to_money(annual_allowance / (WEEKS_IN_YEAR * workweek_hours)),
+        "monthly_tax_paid": _to_money(annual_tax_estimate / MONTHS_IN_YEAR),
+        "weekly_tax_paid": _to_money(annual_tax_estimate / WEEKS_IN_YEAR),
+        "hourly_tax_paid": _to_money(annual_tax_estimate / (WEEKS_IN_YEAR * workweek_hours)),
+        "monthly_ni_paid": _to_money(annual_ni_estimate / MONTHS_IN_YEAR),
+        "weekly_ni_paid": _to_money(annual_ni_estimate / WEEKS_IN_YEAR),
+        "hourly_ni_paid": _to_money(annual_ni_estimate / (WEEKS_IN_YEAR * workweek_hours)),
+        "monthly_total_deduction": _to_money(
+            (annual_tax_estimate + annual_ni_estimate) / MONTHS_IN_YEAR
+        ),
+        "weekly_total_deduction": _to_money(
+            (annual_tax_estimate + annual_ni_estimate) / WEEKS_IN_YEAR
+        ),
+        "hourly_total_deduction": _to_money(
+            (annual_tax_estimate + annual_ni_estimate) / (WEEKS_IN_YEAR * workweek_hours)
+        ),
+        "monthly_take_home": _to_money(annual_take_home / MONTHS_IN_YEAR),
+        "weekly_take_home": _to_money(annual_take_home / WEEKS_IN_YEAR),
+        "hourly_take_home": _to_money(annual_take_home / (WEEKS_IN_YEAR * workweek_hours)),
+        "salary": _to_money(salary),
+        "hmrc_period_tax": _to_money(period_tax),
+        "hmrc_period_ni": _to_money(period_ni),
+        "hmrc_period_take_home": _to_money(period_gross - period_tax - period_ni),
+        "hmrc_period_gross": _to_money(period_gross),
+        "hmrc_tax_code": str(tax_code).upper(),
+        "hmrc_basis": effective_hmrc_basis,
+        "hmrc_region": "scotland" if effective_is_scotland else "rUK",
+        "hmrc_payroll_frequency": payroll_frequency,
     }
 
 
 def process_tax_calculation(data, year):
-    income = data.get('income', 0)
-    income_type = data.get('income_type', 'yearly')
-    is_blind = data.get('is_blind', False)
-    no_ni = data.get('no_ni', False)
-    is_scotland = data.get('is_scotland', False)
-    workweek_hours = Decimal(data.get('workweek_hours', 40))
-
-    # ТЕПЕРЬ get_tax_rates вернет ОБЪЕКТ TaxRate (или None)
+    income = data.get("income", 0)
+    income_type = data.get("income_type", "yearly")
+    is_blind = data.get("is_blind", False)
+    no_ni = data.get("no_ni", False)
+    mca = data.get("mca", False)
+    is_scotland = data.get("is_scotland", False)
+    workweek_hours = Decimal(data.get("workweek_hours", 40))
     tax_rate_obj = get_tax_rates(year)
     if not tax_rate_obj:
-        return None, f'Tax rates not found for the year {year}.'
+        return None, f"Tax rates not found for the year {year}."
 
-    # Передаем объект tax_rate_obj в calculate_tax_details
-    tax_details = calculate_tax_details(
-        income,
-        income_type,
-        is_blind,
-        no_ni,
-        tax_rate_obj,       # <-- уже не словарь
-        is_scotland,
-        workweek_hours
+    parsed_tax_code = _parse_tax_code_metadata(data.get("tax_code") or "1257L")
+    hmrc_context_fields = (
+        "payroll_frequency",
+        "hmrc_basis",
+        "period_number",
+        "ytd_tax_paid",
+        "ytd_gross",
     )
+    uses_default_hmrc_profile = not any(
+        data.get(field) not in (None, "", 0, "0") for field in hmrc_context_fields
+    ) and not parsed_tax_code["force_non_cumulative"]
+    hmrc_strict = str(data.get("hmrc_strict", "false")).lower() in (
+        "1",
+        "true",
+        "yes",
+        "on",
+    )
+    if hmrc_strict and uses_default_hmrc_profile:
+        return None, (
+            "HMRC strict mode requires payroll context: "
+            "period_number, ytd_gross, ytd_tax_paid, "
+            "and optional payroll_frequency/hmrc_basis."
+        )
 
-    # Если хотите вывести какие-то поля на экран,
-    # добавьте их в словарь (UI-контекст).
-    # Но учтите, что personal_allowance теперь получаем через атрибут:
-    tax_details.update({
-        'personal_allowance': f'{tax_rate_obj.personal_allowance:,.2f}',
-        'salary': f'{tax_details["salary"]:,.2f}',
-        'is_scotland': is_scotland,
-    })
+    tax_details = calculate_tax_details_hmrc_paye(
+        income=income,
+        income_type=income_type,
+        is_blind=is_blind,
+        no_ni=no_ni,
+        tax_rates=tax_rate_obj,
+        is_scotland=is_scotland,
+        workweek_hours=workweek_hours,
+        tax_code=data.get("tax_code") or "1257L",
+        payroll_frequency=data.get("payroll_frequency") or "monthly",
+        hmrc_basis=data.get("hmrc_basis") or "cumulative",
+        period_number=int(data.get("period_number") or 1),
+        ytd_tax_paid=Decimal(data.get("ytd_tax_paid") or 0),
+        ytd_gross=Decimal(data.get("ytd_gross") or 0),
+        mca=mca,
+    )
+    tax_details["hmrc_precision_level"] = "approximate" if uses_default_hmrc_profile else "strict"
+    if uses_default_hmrc_profile:
+        tax_details["hmrc_precision_note"] = (
+            "Default HMRC profile in use (monthly/cumulative, period 1, YTD 0)."
+        )
+
+    tax_details.update(
+        {
+            "personal_allowance": f"{tax_rate_obj.personal_allowance:,.2f}",
+            "salary": f'{tax_details["salary"]:,.2f}',
+            "is_scotland": is_scotland,
+            "calculation_mode": "hmrc_paye",
+            "has_result": True,
+        }
+    )
 
     return tax_details, None
 
 
 def calculator_view(request):
     try:
-        year = get_default_year()  # Получаем текущий или последний доступный год
+        year = get_default_year()
     except ValueError as e:
-        return render(request, 'calculator/error.html', {'error_message': str(e)})
+        return render(request, "calculator/error.html", {"error_message": str(e)})
 
-    if request.method == 'POST':
+    if request.method == "POST":
         form = TaxForm(request.POST)
         if form.is_valid():
             data = form.cleaned_data
-            selected_year = int(data.get('tax_year', year))  # Используем выбранный год или дефолтный
+            selected_year = int(data.get("tax_year", year))
             context, error = process_tax_calculation(data, selected_year)
             if error:
-                return render(request, 'calculator/index.html', {'form': form, 'error': error, 'year': selected_year})
-            context['form'] = form
-            context['year'] = selected_year
-            return render(request, 'calculator/index.html', context)
+                return render(
+                    request,
+                    "calculator/index.html",
+                    {"form": form, "error": error, "year": selected_year},
+                )
+            context["form"] = form
+            context["year"] = selected_year
+            return render(request, "calculator/index.html", context)
     else:
-        form = TaxForm(initial={'tax_year': year})
-    return render(request, 'calculator/index.html', {'form': form, 'year': year})
+        form = TaxForm(initial={"tax_year": year})
+    return render(request, "calculator/index.html", {"form": form, "year": year})
 
 
-@csrf_exempt
-@api_view(['POST'])
+@api_view(["POST"])
+@authentication_classes([JWTAuthentication])
+@permission_classes([IsAuthenticated])
 def calculate_tax(request):
-    year = int(request.data.get('tax_year', get_default_year()))  # Используем переданный год или дефолтный
+    year = int(request.data.get("tax_year", get_default_year()))
     context, error = process_tax_calculation(request.data, year)
     if error:
-        return Response({'error': error}, status=404)
+        return Response({"error": error}, status=404)
     return Response(context)
-
-

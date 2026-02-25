@@ -1,50 +1,62 @@
 from django import forms
+
 from .models import TaxRate
 
+
 class TaxForm(forms.Form):
+    tax_code = forms.CharField(
+        label="Tax Code",
+        max_length=10,
+        required=False,
+        initial="1257L",
+        widget=forms.TextInput(attrs={"class": "form-control", "placeholder": "1257L"}),
+    )
     income = forms.DecimalField(
-        label='Income £',
+        label="Income £",
         decimal_places=2,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
+        widget=forms.NumberInput(attrs={"class": "form-control"}),
     )
     income_type = forms.ChoiceField(
-        choices=[('yearly', 'Yearly'), ('hourly', 'Hourly')],
-        label='Income Type',
-        widget=forms.Select(attrs={'class': 'form-select'})
+        choices=[("yearly", "Yearly"), ("hourly", "Hourly")],
+        label="Income Type",
+        widget=forms.Select(attrs={"class": "form-select"}),
     )
     is_blind = forms.BooleanField(
-        label='Blind',
+        label="Blind",
         required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
     no_ni = forms.BooleanField(
-        label='No NI',
+        label="No NI",
         required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
     mca = forms.BooleanField(
-        label='MCA',
-        required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        label="MCA", required=False, widget=forms.CheckboxInput(attrs={"class": "form-check-input"})
     )
     is_scotland = forms.BooleanField(
-        label='Scotland',
+        label="Scotland",
         required=False,
-        widget=forms.CheckboxInput(attrs={'class': 'form-check-input'})
+        widget=forms.CheckboxInput(attrs={"class": "form-check-input"}),
     )
     workweek_hours = forms.ChoiceField(
-        choices=[(40, '40 hours'), (37.5, '37.5 hours')],
-        label='Workweek Hours',
-        widget=forms.Select(attrs={'class': 'form-select'})
+        choices=[(40, "40 hours"), (37.5, "37.5 hours")],
+        label="Workweek Hours",
+        widget=forms.Select(attrs={"class": "form-select"}),
     )
 
-    # Поле для выбора налогового года
+    # Tax year selector field.
+    @staticmethod
     def generate_tax_year_choices():
-        years = TaxRate.objects.values_list('year', flat=True).order_by('year')
+        years = TaxRate.objects.values_list("year", flat=True).order_by("year")
         return [(year, f"{year}/{year + 1 - 2000}") for year in years]
 
     tax_year = forms.ChoiceField(
-        choices=generate_tax_year_choices(),
-        label='Tax Year',
-        widget=forms.Select(attrs={'class': 'form-select'})
+        choices=[],  # Populated in __init__ to avoid DB access during import.
+        label="Tax Year",
+        widget=forms.Select(attrs={"class": "form-select"}),
     )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["tax_year"].choices = self.generate_tax_year_choices()

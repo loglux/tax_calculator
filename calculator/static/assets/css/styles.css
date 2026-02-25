@@ -1,61 +1,211 @@
-/* calculator/static/styles.css */
+:root {
+    --bg: #f6f8fb;
+    --bg-grad-a: #eef3ff;
+    --bg-grad-b: #f9f4ee;
+    --text: #1f2430;
+    --muted: #5c667a;
+    --line: #d8deeb;
+    --surface: #ffffff;
+    --surface-soft: #f8fafe;
+    --primary: #0f6fdc;
+    --primary-ink: #ffffff;
+}
+
+body.theme-slate {
+    --bg: #f7f7f5;
+    --bg-grad-a: #f2f2ed;
+    --bg-grad-b: #f9f3e7;
+    --text: #22252d;
+    --muted: #60656f;
+    --line: #ddd8cf;
+    --surface: #ffffff;
+    --surface-soft: #fbf9f5;
+    --primary: #9a6a1f;
+    --primary-ink: #ffffff;
+}
+
+body.theme-graphite {
+    --bg: #eef2f3;
+    --bg-grad-a: #e4ecef;
+    --bg-grad-b: #eef4f3;
+    --text: #1c2329;
+    --muted: #54616a;
+    --line: #cfd8df;
+    --surface: #ffffff;
+    --surface-soft: #f4f8f9;
+    --primary: #00756b;
+    --primary-ink: #ffffff;
+}
+
 body {
-    font-family: Arial, sans-serif;
-    background-color: #f4f4f4;
     margin: 0;
     padding: 0;
+    color: var(--text);
+    font-family: "Trebuchet MS", "Gill Sans", "Noto Sans", sans-serif;
+    background:
+        radial-gradient(1200px 500px at 0% 0%, var(--bg-grad-a), transparent 60%),
+        radial-gradient(900px 500px at 100% 0%, var(--bg-grad-b), transparent 58%),
+        var(--bg);
+}
+
+.container.my-5 {
+    max-width: 1120px;
+}
+
+.top-controls {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 0.9rem;
+}
+
+.top-controls .nav-tabs {
+    margin-bottom: 0;
+}
+
+.theme-switch {
+    max-width: 260px;
+    min-width: 220px;
 }
 
 .card {
-    border: none;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    box-shadow: 0 10px 30px rgba(27, 46, 94, 0.06);
+    overflow: hidden;
 }
 
 .card-title {
-    font-size: 1.75rem;
+    font-size: clamp(1.4rem, 2.4vw, 1.9rem);
+    font-weight: 800;
+    letter-spacing: 0.01em;
+    margin-bottom: 1.25rem;
+}
+
+.nav-tabs {
+    border-bottom: 1px solid var(--line);
+    gap: 0.4rem;
+}
+
+.nav-tabs .nav-link {
+    border: 1px solid transparent;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+    color: var(--muted);
     font-weight: 700;
 }
 
-.table th,
-.table td {
-    vertical-align: middle;
+.nav-tabs .nav-link.active {
+    color: var(--text);
+    background: var(--surface);
+    border-color: var(--line) var(--line) var(--surface);
 }
 
-.table thead th {
-    background-color: #f8f9fa;
+.alert {
+    border-radius: 12px;
+    border: 1px solid #f1d7a2;
+}
+
+.form-label {
+    font-weight: 700;
+    color: #283047;
+    margin-bottom: 0.35rem;
+}
+
+.form-control,
+.form-select {
+    border-radius: 10px;
+    border: 1px solid #cfd8ea;
+    min-height: 42px;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: #8fb7f0;
+    box-shadow: 0 0 0 0.2rem rgba(15, 111, 220, 0.15);
 }
 
 .form-check {
     display: flex;
     align-items: center;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.45rem;
 }
 
 .form-check-input {
     margin-right: 0.5rem;
 }
 
-.form-control, .form-select {
-    width: 100%; /* Используем 100% ширины для полей */
-    display: block;
-    box-sizing: border-box;
+button[type="submit"].btn-primary {
+    background-color: var(--primary);
+    border-color: var(--primary);
+    color: var(--primary-ink);
+    border-radius: 10px;
+    font-weight: 700;
+    padding: 0.68rem 0.9rem;
 }
 
-.col-auto {
-    text-align: left; /* Обеспечивает выравнивание по левому краю */
+button[type="submit"].btn-primary:hover {
+    filter: brightness(0.95);
 }
 
-/* Адаптивность для мобильных устройств */
+.table {
+    margin-bottom: 0;
+    border-color: #d8deeb;
+}
+
+.table thead th {
+    background: linear-gradient(180deg, #f8faff 0%, #f1f5fe 100%);
+    color: #2f3a56;
+    font-weight: 700;
+    border-bottom-width: 1px;
+}
+
+.table td,
+.table th {
+    vertical-align: middle;
+}
+
+.table tbody tr:nth-child(odd) td {
+    background-color: var(--surface-soft);
+}
+
+.tab-pane .card-body.bg-light {
+    background: linear-gradient(180deg, #f7f8fc 0%, #f2f5fb 100%) !important;
+}
+
+pre.bg-light {
+    border: 1px solid #d8deeb;
+    border-radius: 10px;
+    background: #ffffff !important;
+}
+
 @media (max-width: 768px) {
-    .col-12 {
-        width: 100%; /* На маленьких экранах каждый элемент будет занимать 100% ширины */
+    .container.my-5 {
+        padding-left: 0.85rem;
+        padding-right: 0.85rem;
     }
 
-    .form-check {
-        flex-direction: row;
-        align-items: center;
+    .top-controls {
+        flex-direction: column;
+        align-items: stretch;
     }
 
-    button[type="submit"] {
-        width: 100%; /* Кнопка на всю ширину */
+    .theme-switch {
+        max-width: none;
+        min-width: 0;
+    }
+
+    .card {
+        border-radius: 14px;
+    }
+
+    .card-body {
+        padding: 1rem;
+    }
+
+    .table th,
+    .table td {
+        white-space: nowrap;
+        font-size: 0.92rem;
     }
 }
