@@ -498,6 +498,12 @@ def process_tax_calculation(data, year):
             "salary": f'{tax_details["salary"]:,.2f}',
             "is_scotland": is_scotland,
             "calculation_mode": "hmrc_paye",
+            "show_personal_allowance_reduction": Decimal(
+                tax_details.get("personal_allowance_reduction", 0)
+            )
+            > Decimal("0"),
+            "show_mca_relief": Decimal(tax_details.get("mca_relief_amount", 0))
+            > Decimal("0"),
             "has_result": True,
         }
     )

@@ -74,24 +74,27 @@
                             </div>
 
                             <div class="row g-3 mt-3 justify-content-center">
-                                <div class="col-12 col-md-6">
-                                    <div class="form-check">
-                                        {{ form.is_blind }}
-                                        <label for="{{ form.is_blind.id_for_label }}" class="form-check-label">Blind:</label>
-                                    </div>
-                                    <div class="form-check">
-                                        {{ form.no_ni }}
-                                        <label for="{{ form.no_ni.id_for_label }}" class="form-check-label">No NI:</label>
-                                    </div>
-                                </div>
-                                <div class="col-12 col-md-6">
-                                    <div class="form-check">
-                                        {{ form.mca }}
-                                        <label for="{{ form.mca.id_for_label }}" class="form-check-label">MCA:</label>
-                                    </div>
-                                    <div class="form-check">
-                                        {{ form.is_scotland }}
-                                        <label for="{{ form.is_scotland.id_for_label }}" class="form-check-label">Scotland:</label>
+                                <div class="col-12 col-md-8">
+                                    <div class="options-card">
+                                        <div class="options-title">Options</div>
+                                        <div class="options-grid">
+                                            <div class="option-item">
+                                                {{ form.is_blind }}
+                                                <label for="{{ form.is_blind.id_for_label }}" class="form-check-label">Blind</label>
+                                            </div>
+                                            <div class="option-item">
+                                                {{ form.no_ni }}
+                                                <label for="{{ form.no_ni.id_for_label }}" class="form-check-label">No NI</label>
+                                            </div>
+                                            <div class="option-item">
+                                                {{ form.mca }}
+                                                <label for="{{ form.mca.id_for_label }}" class="form-check-label">MCA</label>
+                                            </div>
+                                            <div class="option-item">
+                                                {{ form.is_scotland }}
+                                                <label for="{{ form.is_scotland.id_for_label }}" class="form-check-label">Scotland</label>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -103,7 +106,7 @@
 
                         {% if has_result %}
                         <div class="table-responsive mt-4">
-                            <table class="table table-bordered">
+                            <table class="table table-bordered results-table">
                                 <thead>
                                     <tr>
                                         <th></th>
@@ -128,6 +131,7 @@
                                         <td id="weeklyPersonalAllowance">£{{ weekly_personal_allowance }}</td>
                                         <td id="hourlyPersonalAllowance">£{{ hourly_personal_allowance }}</td>
                                     </tr>
+                                    {% if show_personal_allowance_reduction %}
                                     <tr>
                                         <td>Personal Allowance Reduction</td>
                                         <td id="personalAllowanceReduction">£{{ personal_allowance_reduction }}</td>
@@ -135,6 +139,7 @@
                                         <td></td>
                                         <td></td>
                                     </tr>
+                                    {% endif %}
                                     <tr>
                                         <td>Tax Paid</td>
                                         <td id="taxPaid">£{{ tax_paid }}</td>
@@ -142,6 +147,7 @@
                                         <td id="weeklyTaxPaid">£{{ weekly_tax_paid }}</td>
                                         <td id="hourlyTaxPaid">£{{ hourly_tax_paid }}</td>
                                     </tr>
+                                    {% if show_mca_relief %}
                                     <tr>
                                         <td>MCA Relief</td>
                                         <td id="mcaReliefAmount">£{{ mca_relief_amount }}</td>
@@ -149,6 +155,7 @@
                                         <td></td>
                                         <td></td>
                                     </tr>
+                                    {% endif %}
                                     <tr>
                                         <td>NI Contribution</td>
                                         <td id="niPaid">£{{ ni_paid }}</td>
