@@ -2,13 +2,13 @@ import os
 
 from .settings import *
 
-# Настройка ALLOWED_HOSTS и CSRF_TRUSTED_ORIGINS для Azure
+# Configure ALLOWED_HOSTS and CSRF_TRUSTED_ORIGINS for Azure
 ALLOWED_HOSTS = [os.environ["WEBSITE_HOSTNAME"]] if "WEBSITE_HOSTNAME" in os.environ else []
 CSRF_TRUSTED_ORIGINS = (
     ["https://" + os.environ["WEBSITE_HOSTNAME"]] if "WEBSITE_HOSTNAME" in os.environ else []
 )
 
-# Настройка middleware для использования whitenoise
+# Configure middleware to use WhiteNoise
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
@@ -20,12 +20,12 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-# Настройка для whitenoise и статики
+# Configure WhiteNoise and static assets
 STATIC_ROOT = os.path.join(BASE_DIR, "staticfiles")
 STATIC_URL = "/static/"
 
-# Установка секретного ключа из переменных окружения
+# Set the secret key from environment variables
 SECRET_KEY = os.getenv("SECRET_KEY", SECRET_KEY)
 
-# Отключение режима отладки
+# Disable debug mode
 DEBUG = False
