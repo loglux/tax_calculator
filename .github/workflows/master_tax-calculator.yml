@@ -85,4 +85,17 @@ jobs:
         with:
           app-name: 'tax-calculator'
           slot-name: 'Production'
+
+      - name: Configure Azure startup command (migrate + seed on boot)
+        shell: bash
+        run: |
+          RG=$(az webapp list --query "[?name=='tax-calculator'].resourceGroup | [0]" -o tsv)
+          if [ -z "$RG" ]; then
+            echo "Could not resolve resource group for app tax-calculator"
+            exit 1
+          fi
+          az webapp config set \
+            --name tax-calculator \
+            --resource-group "$RG" \
+            --startup-file "bash startup.sh"
           
