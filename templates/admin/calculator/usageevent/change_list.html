@@ -4,26 +4,19 @@
 {{ block.super }}
 <style>
     #changelist #changelist-filter {
-        width: 230px;
-        border-left: 1px solid #e6e6e6;
-        background: #fafafa;
-        padding-top: 10px;
-    }
-
-    #changelist.filters-collapsed #changelist-filter {
         display: none;
     }
 
-    #changelist.filters-collapsed #changelist-form .results,
-    #changelist.filters-collapsed #changelist-form #result_list,
-    #changelist.filters-collapsed #changelist-form .paginator {
+    #changelist #changelist-form .results,
+    #changelist #changelist-form #result_list,
+    #changelist #changelist-form .paginator {
         margin-right: 0;
         width: 100%;
     }
 
     .usage-toolbar {
         display: flex;
-        justify-content: space-between;
+        justify-content: flex-end;
         align-items: center;
         gap: 10px;
         margin-bottom: 12px;
@@ -37,35 +30,53 @@
         padding: 8px 12px;
         cursor: pointer;
     }
+
+    .chip-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+
+    .chip-group {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px;
+        background: #fff;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+    }
+
+    .chip-title {
+        font-size: 12px;
+        color: #666;
+        margin-right: 4px;
+    }
+
+    .chip {
+        display: inline-block;
+        padding: 4px 9px;
+        border-radius: 999px;
+        border: 1px solid #c9d2e3;
+        text-decoration: none;
+        color: #24457b;
+        background: #f5f8ff;
+        font-size: 12px;
+        font-weight: 600;
+    }
+
+    .chip.active {
+        background: #24457b;
+        border-color: #24457b;
+        color: #fff;
+    }
 </style>
-{% endblock %}
-
-{% block extrahead %}
-{{ block.super }}
-<script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const changelist = document.getElementById("changelist");
-        const toggle = document.getElementById("toggleFilterPanel");
-        if (!changelist || !toggle) {
-            return;
-        }
-
-        const key = "usage_filters_collapsed";
-        if (localStorage.getItem(key) === "1") {
-            changelist.classList.add("filters-collapsed");
-        }
-
-        toggle.addEventListener("click", function () {
-            changelist.classList.toggle("filters-collapsed");
-            localStorage.setItem(key, changelist.classList.contains("filters-collapsed") ? "1" : "0");
-        });
-    });
-</script>
 {% endblock %}
 
 {% block content %}
 <div class="usage-toolbar">
-    <button type="button" id="toggleFilterPanel">Toggle filters</button>
 {% if can_clear_usage_stats %}
 <div>
     <form method="post" action="{{ clear_usage_stats_url }}">
@@ -80,6 +91,30 @@
     </form>
 </div>
 {% endif %}
+</div>
+
+<div class="chip-row">
+    <div class="chip-group">
+        <span class="chip-title">{{ filter_chips.event_type.title }}:</span>
+        {% for chip in filter_chips.event_type.items %}
+        <a href="{{ chip.url }}" class="chip{% if chip.active %} active{% endif %}">{{ chip.label }}</a>
+        {% endfor %}
+    </div>
+    <div class="chip-group">
+        <span class="chip-title">{{ filter_chips.client_kind.title }}:</span>
+        {% for chip in filter_chips.client_kind.items %}
+        <a href="{{ chip.url }}" class="chip{% if chip.active %} active{% endif %}">{{ chip.label }}</a>
+        {% endfor %}
+    </div>
+    <div class="chip-group">
+        <span class="chip-title">{{ filter_chips.is_bot.title }}:</span>
+        {% for chip in filter_chips.is_bot.items %}
+        <a href="{{ chip.url }}" class="chip{% if chip.active %} active{% endif %}">{{ chip.label }}</a>
+        {% endfor %}
+    </div>
+    <div class="chip-group">
+        <a href="{{ filter_chips.clear_url }}" class="chip">Reset filters</a>
+    </div>
 </div>
 
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;">

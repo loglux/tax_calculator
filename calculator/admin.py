@@ -2,6 +2,7 @@ from django.contrib import admin
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
+from django.http import QueryDict
 from django.http import HttpResponseForbidden
 from django.shortcuts import redirect
 from django.urls import path, reverse
@@ -200,7 +201,77 @@ class UsageEventAdmin(admin.ModelAdmin):
             "daily_activity": list(daily_activity),
             "can_clear_usage_stats": request.user.is_superuser,
             "clear_usage_stats_url": reverse("admin:calculator_usageevent_clear_stats"),
+            "filter_chips": self._build_filter_chips(request),
         }
         if extra_context:
             context.update(extra_context)
         return super().changelist_view(request, extra_context=context)
+
+    def _build_filter_chips(self, request):
+        return {
+            "event_type": self._chip_group(
+                request,
+                "event_type__exact",
+                "Event",
+                [
+                    ("page_view", "Page view"),
+                    ("calculate_submit", "Submit"),
+                    ("api_call", "API call"),
+                ],
+            ),
+            "client_kind": self._chip_group(
+                request,
+                "client_kind__exact",
+                "Client",
+                [
+                    ("mobile", "Mobile"),
+                    ("desktop", "Desktop"),
+                    ("tablet", "Tablet"),
+                    ("bot", "Bot"),
+                    ("unknown", "Unknown"),
+                ],
+            ),
+            "is_bot": self._chip_group(
+                request,
+                "is_bot__exact",
+                "Bot flag",
+                [("1", "Bots"), ("0", "Non-bots")],
+            ),
+            "clear_url": self._url_with_param(request, "__clear__", "__all__"),
+        }
+
+    def _chip_group(self, request, param, title, options):
+        active = request.GET.get(param, "")
+        items = [
+            {
+                "label": "All",
+                "url": self._url_without_param(request, param),
+                "active": active == "",
+            }
+        ]
+        for value, label in options:
+            items.append(
+                {
+                    "label": label,
+                    "url": self._url_with_param(request, param, value),
+                    "active": active == value,
+                }
+            )
+        return {"title": title, "items": items}
+
+    def _url_with_param(self, request, param, value):
+        query = QueryDict(mutable=True)
+        query.update(request.GET)
+        if param == "__clear__":
+            query = QueryDict(mutable=True)
+        else:
+            query[param] = value
+        encoded = query.urlencode()
+        return f"{request.path}?{encoded}" if encoded else request.path
+
+    def _url_without_param(self, request, param):
+        query = QueryDict(mutable=True)
+        query.update(request.GET)
+        query.pop(param, None)
+        encoded = query.urlencode()
+        return f"{request.path}?{encoded}" if encoded else request.path
