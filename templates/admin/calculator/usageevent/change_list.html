@@ -1,6 +1,87 @@
 {% extends "admin/change_list.html" %}
 
+{% block extrastyle %}
+{{ block.super }}
+<style>
+    #changelist #changelist-filter {
+        width: 230px;
+        border-left: 1px solid #e6e6e6;
+        background: #fafafa;
+        padding-top: 10px;
+    }
+
+    #changelist.filters-collapsed #changelist-filter {
+        display: none;
+    }
+
+    #changelist.filters-collapsed #changelist-form .results,
+    #changelist.filters-collapsed #changelist-form #result_list,
+    #changelist.filters-collapsed #changelist-form .paginator {
+        margin-right: 0;
+        width: 100%;
+    }
+
+    .usage-toolbar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+
+    .usage-toolbar button {
+        background: #1f5aa6;
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 8px 12px;
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block extrahead %}
+{{ block.super }}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const changelist = document.getElementById("changelist");
+        const toggle = document.getElementById("toggleFilterPanel");
+        if (!changelist || !toggle) {
+            return;
+        }
+
+        const key = "usage_filters_collapsed";
+        if (localStorage.getItem(key) === "1") {
+            changelist.classList.add("filters-collapsed");
+        }
+
+        toggle.addEventListener("click", function () {
+            changelist.classList.toggle("filters-collapsed");
+            localStorage.setItem(key, changelist.classList.contains("filters-collapsed") ? "1" : "0");
+        });
+    });
+</script>
+{% endblock %}
+
 {% block content %}
+<div class="usage-toolbar">
+    <button type="button" id="toggleFilterPanel">Toggle filters</button>
+{% if can_clear_usage_stats %}
+<div>
+    <form method="post" action="{{ clear_usage_stats_url }}">
+        {% csrf_token %}
+        <button
+            type="submit"
+            style="background:#b42318;color:#fff;border:0;padding:8px 12px;border-radius:6px;cursor:pointer;"
+            onclick="return confirm('Clear all usage statistics? This cannot be undone.');"
+        >
+            Clear usage stats
+        </button>
+    </form>
+</div>
+{% endif %}
+</div>
+
 <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;">
     <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
         <div style="font-size:12px;color:#666;">Events Today</div>
@@ -37,6 +118,22 @@
     <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
         <div style="font-size:12px;color:#666;">HTTP Errors 30d</div>
         <div style="font-size:20px;font-weight:700;">{{ usage_summary.errors_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Mobile 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.mobile_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Desktop 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.desktop_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Tablet 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.tablet_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Bots 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.bot_30d }}</div>
     </div>
 </div>
 

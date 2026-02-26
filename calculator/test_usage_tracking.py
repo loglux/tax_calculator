@@ -44,6 +44,8 @@ class UsageTrackingTests(TestCase):
         self.assertEqual(event.event_type, UsageEvent.EVENT_PAGE_VIEW)
         self.assertEqual(event.path, "/calculator/")
         self.assertTrue(event.client_ip)
+        self.assertIn(event.client_kind, {"desktop", "unknown"})
+        self.assertFalse(event.is_bot)
 
     def test_tracks_calculate_submit_with_payload_fields(self):
         self.client.post(
@@ -75,3 +77,9 @@ class UsageTrackingTests(TestCase):
         self.assertEqual(event.event_type, UsageEvent.EVENT_API_CALL)
         self.assertEqual(event.path, "/calculator/api/calculate/")
         self.assertEqual(event.method, "POST")
+
+    def test_tracks_bot_user_agent(self):
+        self.client.get("/calculator/", HTTP_USER_AGENT="Googlebot/2.1")
+        event = UsageEvent.objects.latest("id")
+        self.assertEqual(event.client_kind, "bot")
+        self.assertTrue(event.is_bot)

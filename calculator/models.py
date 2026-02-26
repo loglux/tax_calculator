@@ -68,6 +68,8 @@ class UsageEvent(models.Model):
     status_code = models.PositiveSmallIntegerField()
     client_ip = models.CharField(max_length=45, blank=True, db_index=True)
     client_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    client_kind = models.CharField(max_length=16, blank=True, db_index=True)
+    is_bot = models.BooleanField(default=False, db_index=True)
     user_agent = models.CharField(max_length=255, blank=True)
 
     tax_year = models.IntegerField(null=True, blank=True, db_index=True)

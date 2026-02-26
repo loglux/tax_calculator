@@ -1,6 +1,10 @@
 from django.contrib import admin
+from django.contrib import messages
 from django.db.models import Count, Q
 from django.db.models.functions import TruncDate
+from django.http import HttpResponseForbidden
+from django.shortcuts import redirect
+from django.urls import path, reverse
 from django.utils import timezone
 
 from .models import TaxRate, UsageEvent
@@ -22,6 +26,8 @@ class UsageEventAdmin(admin.ModelAdmin):
         "method",
         "status_code",
         "client_ip",
+        "client_kind",
+        "is_bot",
         "tax_year",
         "income",
         "income_type",
@@ -34,6 +40,8 @@ class UsageEventAdmin(admin.ModelAdmin):
         "event_type",
         "method",
         "status_code",
+        "client_kind",
+        "is_bot",
         "tax_year",
         "income_type",
         "is_scotland",
@@ -50,6 +58,8 @@ class UsageEventAdmin(admin.ModelAdmin):
         "status_code",
         "client_ip",
         "client_hash",
+        "client_kind",
+        "is_bot",
         "user_agent",
         "tax_year",
         "income",
@@ -70,6 +80,29 @@ class UsageEventAdmin(admin.ModelAdmin):
 
     def has_delete_permission(self, request, obj=None):
         return False
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path(
+                "clear-usage-stats/",
+                self.admin_site.admin_view(self.clear_usage_stats_view),
+                name="calculator_usageevent_clear_stats",
+            ),
+        ]
+        return custom_urls + urls
+
+    def clear_usage_stats_view(self, request):
+        if not request.user.is_superuser:
+            return HttpResponseForbidden("Only superusers can clear usage statistics.")
+        if request.method == "POST":
+            deleted_count, _ = UsageEvent.objects.all().delete()
+            self.message_user(
+                request,
+                f"Usage statistics cleared. Deleted records: {deleted_count}.",
+                level=messages.SUCCESS,
+            )
+        return redirect(reverse("admin:calculator_usageevent_changelist"))
 
     def changelist_view(self, request, extra_context=None):
         now = timezone.now()
@@ -99,6 +132,10 @@ class UsageEventAdmin(admin.ModelAdmin):
                 created_at__gte=month_ago, event_type=UsageEvent.EVENT_API_CALL
             ).count(),
             "errors_30d": qs.filter(created_at__gte=month_ago, status_code__gte=400).count(),
+            "mobile_30d": qs.filter(created_at__gte=month_ago, client_kind="mobile").count(),
+            "desktop_30d": qs.filter(created_at__gte=month_ago, client_kind="desktop").count(),
+            "tablet_30d": qs.filter(created_at__gte=month_ago, client_kind="tablet").count(),
+            "bot_30d": qs.filter(created_at__gte=month_ago, is_bot=True).count(),
         }
         summary["conversion_30d"] = (
             round((summary["calc_submits_30d"] / summary["page_views_30d"]) * 100, 2)
@@ -161,6 +198,8 @@ class UsageEventAdmin(admin.ModelAdmin):
             "top_incomes": list(top_incomes),
             "income_buckets": income_buckets,
             "daily_activity": list(daily_activity),
+            "can_clear_usage_stats": request.user.is_superuser,
+            "clear_usage_stats_url": reverse("admin:calculator_usageevent_clear_stats"),
         }
         if extra_context:
             context.update(extra_context)

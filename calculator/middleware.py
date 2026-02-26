@@ -37,6 +37,8 @@ class UsageTrackingMiddleware:
 
         payload = self._extract_payload(request, event_type)
         client_ip = self._client_ip(request)
+        user_agent = request.META.get("HTTP_USER_AGENT", "")[:255]
+        client_kind, is_bot = self._classify_client(user_agent)
         UsageEvent.objects.create(
             event_type=event_type,
             path=path[:255],
@@ -44,7 +46,9 @@ class UsageTrackingMiddleware:
             status_code=response.status_code,
             client_ip=client_ip,
             client_hash=self._client_hash(client_ip),
-            user_agent=request.META.get("HTTP_USER_AGENT", "")[:255],
+            client_kind=client_kind,
+            is_bot=is_bot,
+            user_agent=user_agent,
             tax_year=self._to_int(payload.get("tax_year")),
             income=self._to_decimal(payload.get("income")),
             income_type=str(payload.get("income_type", ""))[:16],
@@ -107,3 +111,27 @@ class UsageTrackingMiddleware:
         if normalized in {"0", "false", "no", "off"}:
             return False
         return None
+
+    @staticmethod
+    def _classify_client(user_agent):
+        ua = (user_agent or "").lower()
+        if not ua:
+            return "unknown", False
+
+        bot_markers = ("bot", "crawl", "spider", "slurp", "headless", "python-requests")
+        if any(marker in ua for marker in bot_markers):
+            return "bot", True
+
+        if "mobile" in ua or "iphone" in ua or "android" in ua:
+            if "ipad" in ua or "tablet" in ua:
+                return "tablet", False
+            return "mobile", False
+
+        if "ipad" in ua or "tablet" in ua:
+            return "tablet", False
+
+        desktop_markers = ("windows", "macintosh", "x11", "linux")
+        if any(marker in ua for marker in desktop_markers):
+            return "desktop", False
+
+        return "unknown", False
