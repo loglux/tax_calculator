@@ -1,0 +1,129 @@
+{% extends "admin/change_list.html" %}
+
+{% block content %}
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;">
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Events Today</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.events_today }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Events 7d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.events_7d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Events 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.events_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Unique Clients 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.unique_clients_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Page Views 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.page_views_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">Calc Submits 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.calc_submits_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">API Calls 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.api_calls_30d }}</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">View -> Submit Conversion 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.conversion_30d }}%</div>
+    </div>
+    <div style="padding:10px 12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <div style="font-size:12px;color:#666;">HTTP Errors 30d</div>
+        <div style="font-size:20px;font-weight:700;">{{ usage_summary.errors_30d }}</div>
+    </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:16px;">
+    <div style="padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <h3 style="margin:0 0 8px 0;">Top Tax Years</h3>
+        <ul style="margin:0;padding-left:18px;">
+            {% for row in top_tax_years %}
+            <li>{{ row.tax_year }}: {{ row.total }}</li>
+            {% empty %}
+            <li>No data yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div style="padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <h3 style="margin:0 0 8px 0;">Top Workweek Hours</h3>
+        <ul style="margin:0;padding-left:18px;">
+            {% for row in top_hours %}
+            <li>{{ row.workweek_hours }} hours: {{ row.total }}</li>
+            {% empty %}
+            <li>No data yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+    <div style="padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <h3 style="margin:0 0 8px 0;">Option Usage</h3>
+        <ul style="margin:0;padding-left:18px;">
+            <li>Scotland: {{ option_usage.scotland_on }}</li>
+            <li>Blind: {{ option_usage.blind_on }}</li>
+            <li>No NI: {{ option_usage.no_ni_on }}</li>
+            <li>MCA: {{ option_usage.mca_on }}</li>
+        </ul>
+    </div>
+    <div style="padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <h3 style="margin:0 0 8px 0;">Income Buckets</h3>
+        <ul style="margin:0;padding-left:18px;">
+            <li>&lt; 30,000: {{ income_buckets.lt_30k }}</li>
+            <li>30,000 - 49,999: {{ income_buckets.bt_30_50 }}</li>
+            <li>50,000 - 99,999: {{ income_buckets.bt_50_100 }}</li>
+            <li>100,000+: {{ income_buckets.ge_100 }}</li>
+        </ul>
+    </div>
+    <div style="padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;">
+        <h3 style="margin:0 0 8px 0;">Top Incomes</h3>
+        <ul style="margin:0;padding-left:18px;">
+            {% for row in top_incomes %}
+            <li>{{ row.income }}: {{ row.total }}</li>
+            {% empty %}
+            <li>No data yet.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div style="padding:12px;border:1px solid #ddd;border-radius:8px;background:#fff;margin-bottom:16px;">
+    <h3 style="margin:0 0 10px 0;">Daily Activity (30d)</h3>
+    <div style="overflow:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr>
+                    <th style="text-align:left;border-bottom:1px solid #ddd;padding:6px;">Date</th>
+                    <th style="text-align:right;border-bottom:1px solid #ddd;padding:6px;">Events</th>
+                    <th style="text-align:right;border-bottom:1px solid #ddd;padding:6px;">Views</th>
+                    <th style="text-align:right;border-bottom:1px solid #ddd;padding:6px;">Submits</th>
+                    <th style="text-align:right;border-bottom:1px solid #ddd;padding:6px;">API</th>
+                    <th style="text-align:right;border-bottom:1px solid #ddd;padding:6px;">Errors</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for row in daily_activity %}
+                <tr>
+                    <td style="border-bottom:1px solid #f0f0f0;padding:6px;">{{ row.day }}</td>
+                    <td style="border-bottom:1px solid #f0f0f0;padding:6px;text-align:right;">{{ row.events }}</td>
+                    <td style="border-bottom:1px solid #f0f0f0;padding:6px;text-align:right;">{{ row.page_views }}</td>
+                    <td style="border-bottom:1px solid #f0f0f0;padding:6px;text-align:right;">{{ row.calc_submits }}</td>
+                    <td style="border-bottom:1px solid #f0f0f0;padding:6px;text-align:right;">{{ row.api_calls }}</td>
+                    <td style="border-bottom:1px solid #f0f0f0;padding:6px;text-align:right;">{{ row.errors }}</td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="6" style="padding:8px;">No data yet.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{{ block.super }}
+{% endblock %}

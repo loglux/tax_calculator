@@ -48,3 +48,39 @@ class TaxRate(models.Model):
 
     def __str__(self):
         return f"{self.year} Tax Rates"
+
+
+class UsageEvent(models.Model):
+    EVENT_PAGE_VIEW = "page_view"
+    EVENT_CALCULATE_SUBMIT = "calculate_submit"
+    EVENT_API_CALL = "api_call"
+
+    EVENT_CHOICES = (
+        (EVENT_PAGE_VIEW, "Page View"),
+        (EVENT_CALCULATE_SUBMIT, "Calculator Submit"),
+        (EVENT_API_CALL, "API Call"),
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+    event_type = models.CharField(max_length=32, choices=EVENT_CHOICES, db_index=True)
+    path = models.CharField(max_length=255, db_index=True)
+    method = models.CharField(max_length=8)
+    status_code = models.PositiveSmallIntegerField()
+    client_ip = models.CharField(max_length=45, blank=True, db_index=True)
+    client_hash = models.CharField(max_length=64, blank=True, db_index=True)
+    user_agent = models.CharField(max_length=255, blank=True)
+
+    tax_year = models.IntegerField(null=True, blank=True, db_index=True)
+    income = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    income_type = models.CharField(max_length=16, blank=True, db_index=True)
+    workweek_hours = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True)
+    is_scotland = models.BooleanField(null=True, blank=True)
+    is_blind = models.BooleanField(null=True, blank=True)
+    no_ni = models.BooleanField(null=True, blank=True)
+    mca = models.BooleanField(null=True, blank=True)
+
+    class Meta:
+        ordering = ("-created_at",)
+
+    def __str__(self):
+        return f"{self.event_type} {self.path} {self.status_code}"

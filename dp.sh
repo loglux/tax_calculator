@@ -6,6 +6,8 @@ set -e
 # Image and container name
 NAME="tax_calculator"
 PORT=9000
+DATA_DIR="$(pwd)/data"
+SQLITE_PATH="/app/data/db.sqlite3"
 CREATE_LOCAL_ADMIN_IF_MISSING="${CREATE_LOCAL_ADMIN_IF_MISSING:-1}"
 LOCAL_ADMIN_USERNAME="${LOCAL_ADMIN_USERNAME:-admin}"
 LOCAL_ADMIN_PASSWORD="${LOCAL_ADMIN_PASSWORD:-admin12345}"
@@ -14,6 +16,9 @@ LOCAL_ADMIN_EMAIL="${LOCAL_ADMIN_EMAIL:-admin@example.com}"
 # Build Docker image
 echo "Building Docker image..."
 docker build -t $NAME .
+
+# Ensure persistent host directory for SQLite DB
+mkdir -p "$DATA_DIR"
 
 # Check if the container is running or exists
 if [ "$(docker ps -a -q -f name=$NAME)" ]; then
@@ -26,6 +31,8 @@ fi
 echo "Running new container on port $PORT..."
 docker run -d --name $NAME -p $PORT:8000 \
     -e DJANGO_SETTINGS_MODULE=tax_calculator.settings_docker \
+    -e SQLITE_PATH="$SQLITE_PATH" \
+    -v "$DATA_DIR:/app/data" \
     $NAME
 
 # Check if the container started successfully
